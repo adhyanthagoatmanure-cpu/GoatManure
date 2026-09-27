@@ -1,0 +1,14 @@
+<svg viewBox="0 0 400 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ADHYANTHA fertilizer bag">
+  <ellipse cx="200" cy="440" rx="130" ry="18" fill="#2A2A22" opacity="0.08"/>
+  <path d="M120 70 Q200 30 280 70 L272 110 Q200 82 128 110 Z" fill="#5F4B36"/>
+  <path d="M128 108 L272 108 L296 400 Q296 424 272 424 L128 424 Q104 424 104 400 Z" fill="#7A6248"/>
+  <path d="M128 108 L152 108 L158 424 L128 424 Q104 424 104 400 Z" fill="#000" opacity="0.06"/>
+  <path d="M272 108 L248 108 L242 424 L272 424 Q296 424 296 400 Z" fill="#000" opacity="0.06"/>
+  <path d="M118 130 L282 130" stroke="#000" stroke-opacity="0.12" stroke-width="2" stroke-dasharray="4 5"/>
+  <rect x="150" y="180" width="100" height="100" rx="8" fill="#FAF6EC"/>
+  <circle cx="200" cy="215" r="26" fill="none" stroke="#C9A227" stroke-width="3"/>
+  <path d="M188 208 Q192 195 200 195 Q208 195 212 208 Q214 214 210 222 L200 232 L190 222 Q186 214 188 208 Z" fill="#A15C1E"/>
+  <path d="M178 236 L200 250 L222 236 L200 244 Z" fill="#2B4C1F"/>
+  <text x="200" y="268" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="1" fill="#2B4C1F" font-family="Arial, sans-serif">ADHYANTHA</text>
+  <rect x="164" y="320" width="72" height="28" rx="14" fill="#00000010"/>
+</svg>

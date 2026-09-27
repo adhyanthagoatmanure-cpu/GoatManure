@@ -1,0 +1,9 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ADHYANTHA label detail">
+  <rect width="400" height="400" fill="#7A6248"/>
+  <rect x="60" y="60" width="280" height="280" rx="16" fill="#FAF6EC"/>
+  <circle cx="200" cy="165" r="70" fill="none" stroke="#C9A227" stroke-width="6"/>
+  <path d="M165 150 Q175 110 200 110 Q225 110 235 150 Q240 168 228 188 L200 215 L172 188 Q160 168 165 150 Z" fill="#A15C1E"/>
+  <path d="M140 225 L200 260 L260 225 L200 245 Z" fill="#2B4C1F"/>
+  <text x="200" y="305" text-anchor="middle" font-size="26" font-weight="700" letter-spacing="1.5" fill="#2B4C1F" font-family="Georgia, serif">ADHYANTHA</text>
+  <text x="200" y="328" text-anchor="middle" font-size="13" letter-spacing="2" fill="#A15C1E" font-family="Arial, sans-serif">100% ORGANIC</text>
+</svg>

@@ -1,0 +1,31 @@
+# Local database options for development.
+# Keep PostgreSQL available for compatibility checks while MySQL is validated.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: adhyantha
+    ports:
+      - "5432:5432"
+    volumes:
+      - adhyantha_pgdata:/var/lib/postgresql/data
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: adhyantha
+      MYSQL_USER: adhyantha
+      MYSQL_PASSWORD: adhyantha
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - adhyantha_mysql_data:/var/lib/mysql
+
+volumes:
+  adhyantha_pgdata:
+  adhyantha_mysql_data:

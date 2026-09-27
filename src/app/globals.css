@@ -1,0 +1,273 @@
+@import "tailwindcss";
+
+/* Brand typefaces — self-hosted via fontsource, no external font CDN dependency */
+@import "@fontsource/fraunces/400.css";
+@import "@fontsource/fraunces/500.css";
+@import "@fontsource/fraunces/600.css";
+@import "@fontsource/fraunces/600-italic.css";
+@import "@fontsource/karla/400.css";
+@import "@fontsource/karla/500.css";
+@import "@fontsource/karla/600.css";
+@import "@fontsource/karla/700.css";
+@import "@fontsource/oswald/400.css";
+@import "@fontsource/oswald/500.css";
+@import "@fontsource/oswald/600.css";
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/700.css";
+
+/*
+  ADHYANTHA design tokens.
+  Derived from the actual logo + reference assets (extracted palette),
+  not the generic suggestion list — see project README for the rationale.
+*/
+:root {
+  /* Core brand palette (named, deliberate, restrained set) */
+  --color-canopy: #2b4c1f;      /* primary — deep forest green from the wordmark */
+  --color-canopy-dark: #1c3314; /* pressed/hover state, dark footer surfaces */
+  --color-canopy-light: #4a6f39;
+  --color-bronze: #a15c1e;      /* secondary — goat-horn brown from the mark */
+  --color-bronze-dark: #7c4515;
+  --color-gold: #c9a227;        /* accent — crescent gold, used sparingly */
+  --color-gold-dark: #a9840f;
+
+  --color-parchment: #eee1ca;   /* page background — warm light sand */
+  --color-parchment-deep: #e4d2b4;
+  --color-surface: #ffffff;     /* card/panel surface */
+  --color-ink: #2a2a22;         /* primary text — warm near-black */
+  --color-stone: #6b6b5e;       /* secondary/muted text */
+  --color-stone-light: #9a9587;
+  --color-border: #e4dcc8;      /* hairline borders, warm-toned */
+  --color-border-strong: #d3c7a8;
+
+  --color-success: #3f8f4e;
+  --color-success-bg: #eaf5ec;
+  --color-warning: #a9840f;
+  --color-warning-bg: #faf1d9;
+  --color-error: #bc4a2e;
+  --color-error-bg: #fbeae5;
+
+  --font-display: "Oswald", ui-sans-serif, sans-serif;
+  --font-body: "Roboto", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-soft: 0 1px 2px rgba(42, 42, 34, 0.04), 0 4px 16px rgba(42, 42, 34, 0.06);
+  --shadow-lifted: 0 8px 24px rgba(42, 42, 34, 0.10);
+}
+
+/* Map tokens into Tailwind's theme so utilities like bg-canopy, text-stone, font-display exist */
+@theme inline {
+  --color-canopy: var(--color-canopy);
+  --color-canopy-dark: var(--color-canopy-dark);
+  --color-canopy-light: var(--color-canopy-light);
+  --color-bronze: var(--color-bronze);
+  --color-bronze-dark: var(--color-bronze-dark);
+  --color-gold: var(--color-gold);
+  --color-gold-dark: var(--color-gold-dark);
+  --color-parchment: var(--color-parchment);
+  --color-parchment-deep: var(--color-parchment-deep);
+  --color-surface: var(--color-surface);
+  --color-ink: var(--color-ink);
+  --color-stone: var(--color-stone);
+  --color-stone-light: var(--color-stone-light);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-success: var(--color-success);
+  --color-success-bg: var(--color-success-bg);
+  --color-warning: var(--color-warning);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-error: var(--color-error);
+  --color-error-bg: var(--color-error-bg);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--color-parchment);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+  }
+  body, nav, button, p {
+    font-family: var(--font-body);
+  }
+  /* Visible keyboard focus everywhere — accessibility floor, never remove */
+  :focus-visible {
+    outline: 2px solid var(--color-canopy);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--color-gold);
+    color: var(--color-ink);
+  }
+}
+
+@layer utilities {
+  .home-hero {
+    aspect-ratio: 2048 / 768;
+    max-height: 48rem;
+    background: var(--color-parchment);
+  }
+  .home-hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: url("/images/home-garden-bg.png");
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .home-hero-bg::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.02)
+    );
+  }
+  .container-page {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .container-page { padding-inline: 2rem; }
+  }
+
+  .benefits-card {
+    animation: benefitsFadeUp 0.7s ease-out both;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes benefitsFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .benefits-card {
+    animation: none;
+    transition: none;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.print-label {
+  display: none;
+  page: shipping-label;
+}
+
+@media print {
+  @page shipping-label {
+    size: 4in 5in;
+    margin: 0;
+  }
+
+  @page a4-bills {
+    size: A4 portrait;
+    margin: 0.35in;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-label,
+  .print-label * {
+    visibility: visible !important;
+  }
+
+  .print-label {
+    display: block;
+    position: absolute;
+    inset: 0;
+    padding: 0.35in;
+    background: white;
+    color: black;
+  }
+
+  .print-label-content {
+    width: 4in;
+    min-height: 5in;
+    border: 2px solid black;
+    padding: 0.25in;
+  }
+
+  .print-label-logo {
+    display: block;
+    width: 1.65in;
+    height: auto;
+    margin-bottom: 0.08in;
+  }
+
+  .a4-bills-page,
+  .a4-bills-page * {
+    visibility: visible !important;
+  }
+
+  .a4-bills-page {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+  }
+
+  .a4-bill-sheet {
+    page: a4-bills;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    align-content: start;
+    gap: 0;
+    width: 100%;
+  }
+
+  .a4-order-bill {
+    min-height: 4.95in;
+    border: 1px dashed #555;
+    padding: 0.18in;
+    color: black;
+    break-inside: avoid;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+}

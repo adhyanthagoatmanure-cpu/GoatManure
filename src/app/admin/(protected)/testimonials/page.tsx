@@ -31,7 +31,6 @@ export default function AdminTestimonialsPage() {
 
   useEffect(() => {
     // Data is fetched from the admin API during mount; this is the intended client-side hydrate pattern.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

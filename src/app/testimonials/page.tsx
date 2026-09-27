@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Customer Testimonials" };
 
+export const dynamic = "force-dynamic";
+
 export default async function TestimonialsPage() {
   const testimonials = await prisma.testimonial.findMany({
     where: { isPublished: true },

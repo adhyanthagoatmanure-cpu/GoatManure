@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Learn why ADHYANTHA organic goat manure improves soil health and supports stronger, healthier plants.",
 };
 
+export const dynamic = "force-dynamic";
+
 const BENEFITS = [
   {
     title: "SUPERCHARGE GROWTH",

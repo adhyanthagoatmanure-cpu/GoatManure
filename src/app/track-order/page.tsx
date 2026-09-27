@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -68,9 +69,9 @@ export default function TrackOrderLookupPage() {
 
         <p className="mt-6 text-sm text-[var(--color-stone)]">
           Logged in? Find all your orders in{" "}
-          <a href="/account/orders" className="font-medium text-[var(--color-canopy)] hover:underline">
+          <Link href="/account/orders" className="font-medium text-[var(--color-canopy)] hover:underline">
             My Orders
-          </a>
+          </Link>
           .
         </p>
       </div>

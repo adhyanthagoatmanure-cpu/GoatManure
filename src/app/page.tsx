@@ -5,6 +5,8 @@ import { TestimonialsSection } from "@/components/home/testimonials-section";
 import { BlogSection } from "@/components/home/blog-section";
 import { CtaBanner } from "@/components/home/cta-banner";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <>

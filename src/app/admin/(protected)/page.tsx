@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardDateCard, OrderStatusChart, SalesOverview, type SalesPoint, type StatusPoint } from "@/components/admin/dashboard-widgets";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_TONE } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 const statusColors: Record<string, string> = {
   Delivered: "#2e9b57",
   Confirmed: "#4f9c42",

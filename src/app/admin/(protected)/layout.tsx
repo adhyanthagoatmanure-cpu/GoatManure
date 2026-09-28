@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { isAdminIdentity } from "@/lib/admin-identity";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminMobileHeader } from "@/components/admin/admin-mobile-header";
 import { AdminProfileMenu } from "@/components/admin/admin-profile-menu";
@@ -9,7 +10,7 @@ import { AdminNotifications } from "@/components/admin/admin-notifications";
 
 export default async function AdminProtectedLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || !isAdminIdentity(session.user.email, session.user.role)) {
     redirect("/admin/login");
   }
 

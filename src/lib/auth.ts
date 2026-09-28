@@ -6,6 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import baseAuthConfig from "@/lib/auth.config";
+import { ADMIN_EMAIL } from "@/lib/admin-identity";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const hasFacebook = Boolean(process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET);
@@ -145,13 +146,22 @@ const authConfig: NextAuthConfig = {
           ? await prisma.user.findUnique({ where: { email: token.email as string } })
           : null;
       if (dbUser) {
+        const role = dbUser.email === ADMIN_EMAIL ? "ADMIN" : "CUSTOMER";
+        if (dbUser.role !== role) {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { role },
+          });
+        }
         token.id = dbUser.id;
-        token.role = dbUser.role;
+        token.role = role;
         token.phone = dbUser.phone;
         token.image = dbUser.image;
         token.needsProfileCompletion = account?.provider === "google"
           ? !dbUser.phone
           : token.needsProfileCompletion === true && !dbUser.phone;
+      } else {
+        token.role = "CUSTOMER";
       }
       return token;
     },

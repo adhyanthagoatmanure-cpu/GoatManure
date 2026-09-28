@@ -1,4 +1,4 @@
-const { spawnSync } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 
 function configureDatabaseUrl() {
   if (process.env.DATABASE_URL) {
@@ -12,7 +12,7 @@ function configureDatabaseUrl() {
 
   if (missingVariables.length > 0) {
     throw new Error(
-      `Cannot configure Prisma: missing environment variable(s): ${missingVariables.join(", ")}. Set DATABASE_URL or all required DB_* variables.`,
+      `Cannot start application: missing environment variable(s): ${missingVariables.join(", ")}. Set DATABASE_URL or all required DB_* variables.`,
     );
   }
 
@@ -25,10 +25,10 @@ function configureDatabaseUrl() {
   process.env.DATABASE_URL = databaseUrl.toString();
 }
 
-function runPrisma(...args) {
+function deployMigrations() {
   const result = spawnSync(
     process.execPath,
-    [require.resolve("prisma/build/index.js"), ...args],
+    [require.resolve("prisma/build/index.js"), "migrate", "deploy"],
     {
       env: process.env,
       stdio: "inherit",
@@ -47,11 +47,34 @@ function runPrisma(...args) {
   return true;
 }
 
+function startNext() {
+  const child = spawn(
+    process.execPath,
+    [require.resolve("next/dist/bin/next"), "start"],
+    {
+      env: process.env,
+      stdio: "inherit",
+    },
+  );
+
+  child.on("error", (error) => {
+    console.error(`Failed to start Next.js: ${error.message}`);
+    process.exitCode = 1;
+  });
+
+  child.on("close", (code, signal) => {
+    process.exitCode = code ?? (signal === "SIGINT" ? 130 : 1);
+  });
+
+  process.on("SIGINT", () => child.kill("SIGINT"));
+  process.on("SIGTERM", () => child.kill("SIGTERM"));
+}
+
 try {
   configureDatabaseUrl();
 
-  if (runPrisma("migrate", "deploy")) {
-    runPrisma("generate");
+  if (deployMigrations()) {
+    startNext();
   }
 } catch (error) {
   console.error(error.message);

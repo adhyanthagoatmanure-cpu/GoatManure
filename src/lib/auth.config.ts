@@ -2,6 +2,8 @@ import type { NextAuthConfig } from "next-auth";
 
 const authConfig = {
   providers: [],
+  // GoDaddy terminates TLS and forwards requests to the app on an internal host.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",

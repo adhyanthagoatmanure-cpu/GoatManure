@@ -1,125 +1,151 @@
 import { normalizeWhatsAppPhone } from "./phone";
 
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN ?? "";
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID ?? "";
-const API_VERSION = process.env.WHATSAPP_API_VERSION ?? "v22.0";
-const ADMIN_PHONE = process.env.WHATSAPP_ADMIN_PHONE ?? process.env.WHATSAPP_ADMIN_PHONE_NUMBER ?? "";
+const TEMPLATE_LANGUAGE = "en";
+const MAX_TEMPLATE_PARAMETER_LENGTH = 1024;
 
-export interface CustomerOrderWhatsAppInput {
+interface OrderWhatsAppTemplateInput {
   orderNumber: string;
   customerName: string;
-  customerPhone: string;
   totalAmount: number;
-  paymentMethod: string;
-  items: { productName: string; weightLabel: string; quantity: number; lineTotal: number }[];
-  trackUrl?: string;
+  items: { productName: string; weightLabel: string; quantity: number }[];
 }
 
-export interface AdminOrderWhatsAppInput {
-  orderNumber: string;
-  customerName: string;
+interface CustomerOrderWhatsAppInput extends OrderWhatsAppTemplateInput {
   customerPhone: string;
-  totalAmount: number;
-  paymentMethod: string;
-  items: { productName: string; weightLabel: string; quantity: number; lineTotal: number }[];
-  deliveryAddress: string;
-  trackUrl?: string;
 }
 
 export interface WhatsAppSendResult {
   messageId?: string;
 }
 
-function getCustomerOrderMessage(input: CustomerOrderWhatsAppInput) {
-  const itemsText = input.items
-    .map((item) => `• ${item.productName} (${item.weightLabel}) × ${item.quantity}`)
-    .join("\n");
-
-  return [
-    "🎉 ORDER CONFIRMED — ADHYANTHA",
-    "",
-    `Hi ${input.customerName || "there"} 👋`,
-    "",
-    "Thank you for your order. Your order has been successfully placed.",
-    "",
-    `🧾 Order ID: ${input.orderNumber}`,
-    "",
-    "🛍️ Items:",
-    itemsText || "• No items listed",
-    "",
-    `💰 Total: ₹${input.totalAmount}`,
-    `💳 Payment: ${input.paymentMethod}`,
-    "",
-    "📦 Your order is being processed.",
-    "",
-    "🔗 Track your order:",
-    input.trackUrl || "",
-    "",
-    "Thank you for shopping with ADHYANTHA 🌱",
-  ].join("\n");
-}
-
-function getAdminOrderMessage(input: AdminOrderWhatsAppInput) {
-  return [
-    "*NEW ORDER RECEIVED*",
-    `Order ID: ${input.orderNumber}`,
-    `Customer: ${input.customerName}`,
-    `Phone: ${input.customerPhone || "Not provided"}`,
-    `Payment: ${input.paymentMethod}`,
-    `Total: ₹${input.totalAmount}`,
-    "",
-    "Ordered products:",
-    ...input.items.map((item) => `- ${item.productName} (${item.weightLabel}) x${item.quantity} = ₹${item.lineTotal}`),
-    "",
-    `Delivery Address: ${input.deliveryAddress || "Not provided"}`,
-  ].join("\n");
-}
-
-async function sendWhatsAppText(to: string, body: string): Promise<WhatsAppSendResult> {
-  const recipient = normalizeWhatsAppPhone(to);
-  if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
-    throw new Error("WhatsApp Cloud API is not configured");
+export class WhatsAppApiError extends Error {
+  constructor(
+    message: string,
+    readonly httpStatus: number,
+    readonly errorCode?: string | number
+  ) {
+    super(message);
+    this.name = "WhatsAppApiError";
   }
-  if (!/^v\d+\.\d+$/.test(API_VERSION)) {
+}
+
+function cleanTemplateText(value: string, maxLength: number): string {
+  const clean = value.replace(/[\u0000-\u001f\u007f]/g, " ").trim();
+  return clean.length > maxLength ? `${clean.slice(0, maxLength - 1)}…` : clean;
+}
+
+function summarizeOrderItems(items: OrderWhatsAppTemplateInput["items"]): string {
+  if (items.length === 0) return "Order items unavailable";
+
+  const summaries = items.map((item) => {
+    const name = cleanTemplateText(item.productName, 200) || "Product";
+    const weight = cleanTemplateText(item.weightLabel, 64);
+    const description = weight ? `${name} (${weight})` : name;
+    return `${description} x${item.quantity}`;
+  });
+  const included: string[] = [];
+
+  for (const [index, summary] of summaries.entries()) {
+    const candidate = [...included, summary].join("; ");
+    const remainingCount = summaries.length - index - 1;
+    const suffix = remainingCount > 0 ? `; +${remainingCount} more item${remainingCount === 1 ? "" : "s"}` : "";
+    if (candidate.length + suffix.length <= MAX_TEMPLATE_PARAMETER_LENGTH) {
+      included.push(summary);
+      continue;
+    }
+
+    const omittedCount = summaries.length - included.length;
+    const remainder = `; +${omittedCount} more item${omittedCount === 1 ? "" : "s"}`;
+    return `${included.join("; ")}${remainder}`;
+  }
+
+  return included.join("; ");
+}
+
+function orderTemplateParameters(
+  input: OrderWhatsAppTemplateInput,
+  templateName: "order_confirmation" | "new_order_admin"
+): string[] {
+  const totalQuantity = input.items.reduce((total, item) => total + item.quantity, 0);
+  const customerName = cleanTemplateText(input.customerName, MAX_TEMPLATE_PARAMETER_LENGTH) || "Customer";
+  const orderNumber = cleanTemplateText(input.orderNumber, MAX_TEMPLATE_PARAMETER_LENGTH);
+  const productSummary = summarizeOrderItems(input.items);
+  const quantity = `${totalQuantity} total unit${totalQuantity === 1 ? "" : "s"}`;
+  const totalAmount = input.totalAmount.toLocaleString("en-IN");
+
+  return templateName === "order_confirmation"
+    ? [customerName, orderNumber, productSummary, quantity, totalAmount]
+    : [orderNumber, customerName, productSummary, quantity, totalAmount];
+}
+
+async function sendOrderTemplate(
+  to: string,
+  templateName: "order_confirmation" | "new_order_admin",
+  parameters: string[]
+): Promise<WhatsAppSendResult> {
+  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+  const apiVersion = process.env.WHATSAPP_API_VERSION?.trim() || "v22.0";
+  const recipient = normalizeWhatsAppPhone(to);
+
+  if (!accessToken) throw new Error("WHATSAPP_ACCESS_TOKEN is not configured");
+  if (!phoneNumberId || !/^\d+$/.test(phoneNumberId)) {
+    throw new Error("WHATSAPP_PHONE_NUMBER_ID is not configured correctly");
+  }
+  if (!/^v\d+\.\d+$/.test(apiVersion)) {
     throw new Error("WHATSAPP_API_VERSION must use the format vNN.N");
   }
-  if (!recipient) {
-    throw new Error("WhatsApp recipient phone number is invalid");
-  }
+  if (!recipient) throw new Error("WhatsApp recipient phone number is invalid");
 
-  const response = await fetch(`https://graph.facebook.com/${API_VERSION}/${PHONE_NUMBER_ID}/messages`, {
+  const response = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${ACCESS_TOKEN}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       messaging_product: "whatsapp",
       recipient_type: "individual",
-      to: recipient,
-      type: "text",
-      text: { preview_url: true, body },
+      to: recipient.slice(1),
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: TEMPLATE_LANGUAGE },
+        components: [
+          {
+            type: "body",
+            parameters: parameters.map((text) => ({
+              type: "text",
+              text: cleanTemplateText(text, MAX_TEMPLATE_PARAMETER_LENGTH),
+            })),
+          },
+        ],
+      },
     }),
   });
 
   const payload = (await response.json().catch(() => null)) as {
     messages?: { id?: string }[];
-    error?: { message?: string; code?: number | string };
+    error?: { message?: string; code?: string | number };
   } | null;
 
   if (!response.ok) {
-    const message = payload?.error?.message ?? "Unknown Meta API error";
-    const code = payload?.error?.code ? ` (code ${payload.error.code})` : "";
-    throw new Error(`WhatsApp API returned ${response.status}: ${message}${code}`);
+    const message = cleanTemplateText(payload?.error?.message ?? "Meta returned an unspecified error", 240);
+    throw new WhatsAppApiError(message, response.status, payload?.error?.code);
   }
 
   return { messageId: payload?.messages?.[0]?.id };
 }
 
-export async function sendCustomerOrderWhatsApp(input: CustomerOrderWhatsAppInput): Promise<WhatsAppSendResult> {
-  return sendWhatsAppText(input.customerPhone, getCustomerOrderMessage(input));
+export async function sendCustomerOrderWhatsApp(
+  input: CustomerOrderWhatsAppInput
+): Promise<WhatsAppSendResult> {
+  return sendOrderTemplate(input.customerPhone, "order_confirmation", orderTemplateParameters(input, "order_confirmation"));
 }
 
-export async function sendAdminOrderWhatsApp(input: AdminOrderWhatsAppInput): Promise<WhatsAppSendResult> {
-  return sendWhatsAppText(ADMIN_PHONE, getAdminOrderMessage(input));
+export async function sendAdminOrderWhatsApp(
+  input: OrderWhatsAppTemplateInput
+): Promise<WhatsAppSendResult> {
+  const adminPhone = process.env.WHATSAPP_ADMIN_PHONE?.trim() || process.env.WHATSAPP_ADMIN_PHONE_NUMBER?.trim() || "";
+  return sendOrderTemplate(adminPhone, "new_order_admin", orderTemplateParameters(input, "new_order_admin"));
 }

@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { adminOrderNotificationEmail, getEmailService, orderConfirmationEmail } from "@/server/email/email-service";
-import { sendAdminOrderWhatsApp, sendCustomerOrderWhatsApp } from "@/server/whatsapp/whatsapp-service";
+import {
+  sendAdminOrderWhatsApp,
+  sendCustomerOrderWhatsApp,
+  WhatsAppApiError,
+} from "@/server/whatsapp/whatsapp-service";
 import { normalizeWhatsAppPhone } from "@/server/whatsapp/phone";
 
 type NotificationChannel = "customer-email" | "customer-whatsapp" | "admin-email" | "admin-whatsapp";
@@ -25,7 +29,8 @@ function maskPhone(phone: string): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown notification error";
+  const message = error instanceof Error ? error.message : "Unknown notification error";
+  return message.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 240);
 }
 
 function logSkipped(orderId: string, channel: NotificationChannel, reason: string) {
@@ -87,22 +92,20 @@ export async function notifyOrder(orderId: string): Promise<void> {
   }
 
   if (customerPhone) {
+    console.info(`[WHATSAPP] customer notification started order=${orderId} phone=${maskPhone(customerPhone)}`);
     attempts.push({
       channel: "customer-whatsapp",
       destination: maskPhone(customerPhone),
       promise: sendCustomerOrderWhatsApp({
-        orderNumber: order.orderNumber,
-        customerName: name ?? "there",
+        orderNumber: notification.orderNumber,
+        customerName: notification.customerName,
         customerPhone,
         totalAmount: order.totalAmount,
-        paymentMethod: notification.paymentMethod,
         items: order.items.map((item) => ({
           productName: item.productName,
           weightLabel: item.weightLabel,
           quantity: item.quantity,
-          lineTotal: item.lineTotal,
         })),
-        trackUrl,
       }),
     });
   } else {
@@ -121,12 +124,24 @@ export async function notifyOrder(orderId: string): Promise<void> {
     logSkipped(orderId, "admin-email", "ADMIN_NOTIFICATION_EMAIL-not-configured");
   }
 
-  const adminPhone = normalizeWhatsAppPhone(process.env.WHATSAPP_ADMIN_PHONE ?? process.env.WHATSAPP_ADMIN_PHONE_NUMBER);
+  const adminPhone = normalizeWhatsAppPhone(
+    process.env.WHATSAPP_ADMIN_PHONE?.trim() || process.env.WHATSAPP_ADMIN_PHONE_NUMBER?.trim()
+  );
   if (adminPhone) {
+    console.info(`[WHATSAPP] admin notification started order=${orderId} phone=${maskPhone(adminPhone)}`);
     attempts.push({
       channel: "admin-whatsapp",
       destination: maskPhone(adminPhone),
-      promise: sendAdminOrderWhatsApp(notification),
+      promise: sendAdminOrderWhatsApp({
+        orderNumber: notification.orderNumber,
+        customerName: notification.customerName,
+        totalAmount: notification.totalAmount,
+        items: order.items.map((item) => ({
+          productName: item.productName,
+          weightLabel: item.weightLabel,
+          quantity: item.quantity,
+        })),
+      }),
     });
   } else {
     logSkipped(orderId, "admin-whatsapp", "invalid-or-missing-admin-phone");
@@ -137,6 +152,14 @@ export async function notifyOrder(orderId: string): Promise<void> {
     const attempt = attempts[index];
     if (result.status === "fulfilled") {
       const delivery = result.value;
+      if (attempt.channel === "customer-whatsapp" || attempt.channel === "admin-whatsapp") {
+        const recipient = attempt.channel === "customer-whatsapp" ? "customer" : "admin";
+        const messageId = delivery.messageId?.replace(/[^\w.-]/g, "").slice(0, 128);
+        console.info(
+          `[WHATSAPP] ${recipient} notification sent order=${orderId} phone=${attempt.destination}${messageId ? ` messageId=${messageId}` : ""}`
+        );
+        return;
+      }
       const details = [
         delivery.sent === false ? "sent=false" : "sent=true",
         delivery.messageId ? `messageId=${delivery.messageId}` : "",
@@ -147,6 +170,17 @@ export async function notifyOrder(orderId: string): Promise<void> {
         `[ORDER_NOTIFICATION] order=${orderId} channel=${attempt.channel} status=${delivery.sent === false ? "skipped" : "success"} destination=${attempt.destination}${details ? ` ${details}` : ""}`
       );
     } else {
+      if (attempt.channel === "customer-whatsapp" || attempt.channel === "admin-whatsapp") {
+        const recipient = attempt.channel === "customer-whatsapp" ? "customer" : "admin";
+        const metaDetails =
+          result.reason instanceof WhatsAppApiError
+            ? ` httpStatus=${result.reason.httpStatus}${result.reason.errorCode ? ` errorCode=${String(result.reason.errorCode).replace(/[^\w.-]/g, "").slice(0, 40)}` : ""}`
+            : "";
+        console.error(
+          `[WHATSAPP] ${recipient} notification failed order=${orderId} phone=${attempt.destination}${metaDetails} error=${errorMessage(result.reason)}`
+        );
+        return;
+      }
       console.error(
         `[ORDER_NOTIFICATION] order=${orderId} channel=${attempt.channel} status=failure destination=${attempt.destination} error=${errorMessage(result.reason)}`
       );

@@ -49,9 +49,10 @@ See `.env.example` for the full list and where to get each credential.
 
 When configured, every successful order sends a detailed email to
 `ADMIN_NOTIFICATION_EMAIL` and a WhatsApp alert through Meta's WhatsApp Cloud API
-to `WHATSAPP_ADMIN_PHONE_NUMBER`. The WhatsApp number must be in E.164 format. A
-WhatsApp business-initiated message may require an approved Meta message template
-unless the admin number has an active WhatsApp conversation window.
+to `WHATSAPP_ADMIN_PHONE_NUMBER`. The WhatsApp number must be in E.164 format.
+Order alerts use the approved `order_confirmation` and `new_order_admin` Utility
+templates (language code `en`); the Meta App must have these templates active.
+WhatsApp delivery failures are logged and do not invalidate the order.
 
 ## WhatsApp Cloud API webhook
 
@@ -71,13 +72,20 @@ server-side environment settings:
 - `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and
   `WHATSAPP_BUSINESS_ACCOUNT_ID` — Meta Cloud API credentials/IDs.
 
-`WHATSAPP_BUSINESS_ACCOUNT_ID` is documented for later use; the webhook does not
-need to query the Graph API. No database migration is required: current message
-and status events are safely summarized in server logs and are not persisted or
-used to trigger business actions. Parsed events expose deterministic
+`WHATSAPP_BUSINESS_ACCOUNT_ID` is documented for later use; outbound message
+sending does not need to query the Graph API. No database migration is required:
+webhook message and status events are safely summarized in server logs and are
+not persisted or used to trigger business actions. Parsed events expose deterministic
 `deduplicationKey` values (when upstream IDs/timestamps exist) for a future
 persistent idempotency store. Message text is parsed for future processing, but
 never logged. Sender/recipient identifiers are masked in logs.
+
+For order template delivery, set `WHATSAPP_ACCESS_TOKEN`,
+`WHATSAPP_PHONE_NUMBER_ID`, and `WHATSAPP_ADMIN_PHONE_NUMBER` on the server. The
+admin/customer sends supply five body parameters in the approved template order;
+the admin template's static header and footer are supplied by Meta and require no
+dynamic header parameters. The customer template summarizes all order items in
+its single product parameter and reports the total unit quantity.
 
 For local testing, run `npm run dev`, then expose port 3000 using a trusted HTTPS
 tunnel such as `cloudflared tunnel --url http://localhost:3000` or

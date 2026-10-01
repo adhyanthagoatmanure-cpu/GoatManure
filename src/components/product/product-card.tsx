@@ -64,7 +64,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
         {product.category && (
           <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-bronze)]">
             {product.category.name}
@@ -77,7 +77,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
           <Rating value={product.avgRating} count={product.reviewCount} className="mt-1.5" />
         )}
 
-        <div className="mt-2.5 flex items-baseline gap-2">
+        <div className="mt-2.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
           {variant ? (
             <>
               <span className="font-display text-lg font-semibold text-[var(--color-ink)]">
@@ -95,26 +95,26 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
           )}
         </div>
 
-        <div className="mt-3.5 flex items-center gap-2">
+        <div className="mt-auto flex flex-col items-stretch gap-2 pt-3 sm:flex-row">
           <button
             onClick={handleAddToCart}
             disabled={outOfStock}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-canopy)] py-2.5 text-sm font-medium text-[var(--color-canopy)] transition-colors",
+              "flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-canopy)] px-2 py-2.5 text-sm font-medium leading-tight text-[var(--color-canopy)] transition-colors",
               "hover:bg-[var(--color-canopy)] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--color-canopy)]"
             )}
           >
-            <ShoppingBag className="h-4 w-4" /> Add to Cart
+            <ShoppingBag className="h-4 w-4 shrink-0" /> <span>Add to Cart</span>
           </button>
           <button
             onClick={handleBuyNow}
             disabled={outOfStock}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-canopy)] py-2.5 text-sm font-medium text-white transition-colors",
+              "flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-canopy)] px-2 py-2.5 text-sm font-medium leading-tight text-white transition-colors",
               "hover:bg-[var(--color-canopy-dark)] disabled:cursor-not-allowed disabled:opacity-40"
             )}
           >
-            <Zap className="h-4 w-4" /> Buy Now
+            <Zap className="h-4 w-4 shrink-0" /> <span>Buy Now</span>
           </button>
         </div>
       </div>

@@ -36,13 +36,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <ChevronRight className="h-3.5 w-3.5" />
         <Link href="/products" className="hover:text-[var(--color-canopy)]">Products</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-[var(--color-ink)]">{product.name}</span>
+        <span className="min-w-0 flex-1 truncate text-[var(--color-ink)]">{product.name}</span>
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
         <ProductGallery images={product.images} productName={product.name} />
 
-        <div>
+        <div className="min-w-0">
           {product.category && (
             <Link
               href={`/products?category=${product.category.slug}`}
@@ -51,7 +51,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {product.category.name}
             </Link>
           )}
-          <h1 className="mt-1.5 font-display text-3xl font-medium sm:text-4xl">{product.name}</h1>
+          <h1 className="mt-1.5 break-words font-display text-3xl font-medium sm:text-4xl">{product.name}</h1>
           {product.shortDescription && (
             <p className="mt-2.5 text-[15px] text-[var(--color-stone)]">{product.shortDescription}</p>
           )}

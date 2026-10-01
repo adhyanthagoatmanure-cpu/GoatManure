@@ -73,7 +73,7 @@ export function ProductPurchasePanel({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-baseline gap-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-display text-3xl font-semibold">{formatINR(selected.offerPrice)}</span>
         {selected.originalPrice > selected.offerPrice && (
           <span className="text-lg text-[var(--color-stone)] line-through">
@@ -117,16 +117,16 @@ export function ProductPurchasePanel({
         </p>
       ) : null}
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <p className="text-sm font-medium">Quantity</p>
         <QuantitySelector value={quantity} onChange={setQuantity} max={Math.min(20, selected.stock || 20)} />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" variant="outline" className="flex-1" onClick={handleAddToCart} disabled={outOfStock}>
+        <Button size="lg" variant="outline" className="min-h-13 w-full min-w-0 px-4 sm:flex-1 sm:px-7" onClick={handleAddToCart} disabled={outOfStock}>
           <ShoppingBag className="h-4 w-4" /> Add to Cart
         </Button>
-        <Button size="lg" className="flex-1" onClick={handleBuyNow} disabled={outOfStock}>
+        <Button size="lg" className="min-h-13 w-full min-w-0 px-4 sm:flex-1 sm:px-7" onClick={handleBuyNow} disabled={outOfStock}>
           <Zap className="h-4 w-4" /> Buy Now
         </Button>
         <Button
@@ -135,13 +135,15 @@ export function ProductPurchasePanel({
           onClick={toggleWishlist}
           disabled={wishlistBusy}
           aria-label="Add to wishlist"
-          className="sm:w-14"
+          aria-pressed={wishlisted}
+          className="min-h-13 w-full min-w-0 gap-2 px-4 sm:w-14 sm:flex-none sm:px-0"
         >
           {wishlisted ? (
             <Heart className="h-5 w-5 fill-[var(--color-error)] text-[var(--color-error)]" />
           ) : (
             <Heart className="h-5 w-5" />
           )}
+          <span className="sm:hidden">{wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}</span>
         </Button>
       </div>
 

@@ -78,7 +78,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="h-4 w-4 shrink-0" />
-                <span>{SITE.supportEmail}</span>
+                <span className="min-w-0 break-all">{SITE.supportEmail}</span>
               </li>
             </ul>
           </div>

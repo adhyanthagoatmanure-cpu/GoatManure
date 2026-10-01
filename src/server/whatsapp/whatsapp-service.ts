@@ -2,6 +2,7 @@ import { normalizeWhatsAppPhone } from "./phone";
 
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN ?? "";
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID ?? "";
+const API_VERSION = process.env.WHATSAPP_API_VERSION ?? "v22.0";
 const ADMIN_PHONE = process.env.WHATSAPP_ADMIN_PHONE ?? process.env.WHATSAPP_ADMIN_PHONE_NUMBER ?? "";
 
 export interface CustomerOrderWhatsAppInput {
@@ -79,11 +80,14 @@ async function sendWhatsAppText(to: string, body: string): Promise<WhatsAppSendR
   if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
     throw new Error("WhatsApp Cloud API is not configured");
   }
+  if (!/^v\d+\.\d+$/.test(API_VERSION)) {
+    throw new Error("WHATSAPP_API_VERSION must use the format vNN.N");
+  }
   if (!recipient) {
     throw new Error("WhatsApp recipient phone number is invalid");
   }
 
-  const response = await fetch(`https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`, {
+  const response = await fetch(`https://graph.facebook.com/${API_VERSION}/${PHONE_NUMBER_ID}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${ACCESS_TOKEN}`,

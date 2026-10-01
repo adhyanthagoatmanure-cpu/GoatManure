@@ -53,6 +53,58 @@ to `WHATSAPP_ADMIN_PHONE_NUMBER`. The WhatsApp number must be in E.164 format. A
 WhatsApp business-initiated message may require an approved Meta message template
 unless the admin number has an active WhatsApp conversation window.
 
+## WhatsApp Cloud API webhook
+
+The public webhook endpoint is `/api/whatsapp/webhook`. It verifies Meta's GET
+challenge using `WHATSAPP_WEBHOOK_VERIFY_TOKEN` and accepts POST events only when
+the `X-Hub-Signature-256` HMAC matches `WHATSAPP_APP_SECRET`. Both values must be
+configured as server-side environment variables; do not prefix them with
+`NEXT_PUBLIC_`. The app secret is available in Meta App Settings → Basic.
+
+Set these variables in local `.env` and in the production hosting provider's
+server-side environment settings:
+
+- `WHATSAPP_WEBHOOK_VERIFY_TOKEN` — generate a unique value with
+  `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
+- `WHATSAPP_APP_SECRET` — Meta App Secret, used only to validate webhook signatures.
+- `WHATSAPP_API_VERSION` — Graph API version for the existing server-side sender.
+- `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and
+  `WHATSAPP_BUSINESS_ACCOUNT_ID` — Meta Cloud API credentials/IDs.
+
+`WHATSAPP_BUSINESS_ACCOUNT_ID` is documented for later use; the webhook does not
+need to query the Graph API. No database migration is required: current message
+and status events are safely summarized in server logs and are not persisted or
+used to trigger business actions. Parsed events expose deterministic
+`deduplicationKey` values (when upstream IDs/timestamps exist) for a future
+persistent idempotency store. Message text is parsed for future processing, but
+never logged. Sender/recipient identifiers are masked in logs.
+
+For local testing, run `npm run dev`, then expose port 3000 using a trusted HTTPS
+tunnel such as `cloudflared tunnel --url http://localhost:3000` or
+`ngrok http 3000`. Use the temporary HTTPS URL only for development. Configure
+Meta with the stable HTTPS domain from your production deployment:
+
+```text
+Callback URL: https://<your-production-domain>/api/whatsapp/webhook
+Verify token: the exact WHATSAPP_WEBHOOK_VERIFY_TOKEN set in the server environment
+```
+
+In Meta Developer → WhatsApp → Configuration/Webhooks, enter the callback URL
+and token, choose **Verify and save**, then subscribe to the **messages** field.
+This field delivers incoming messages and message status updates. No other
+webhook fields are needed for the current scope.
+
+Quick verification checks (replace the token with the configured value):
+
+```powershell
+curl.exe -i "http://localhost:3000/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=12345"
+curl.exe -i "http://localhost:3000/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=12345"
+```
+
+The valid request returns `200` and the challenge; the invalid token returns
+`403`. POST requests must include a valid Meta signature. To check the route and
+project after setup, run `npm run lint` and `npm run build`.
+
 ## Setup
 
 ```bash

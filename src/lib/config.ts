@@ -17,9 +17,8 @@ export function calculateShippingFee(subtotal: number): number {
 export const SITE = {
   name: "ADHYANTHA Goat Manure",
   shortName: "ADHYANTHA",
-  tagline: "Grow Better. Naturally.",
   supportEmail: "adhyanthagoatmanure@gmail.com",
   supportPhone: "+91 9585420222",
-  whatsappPhone: "+91 9798420222",
+  whatsappPhone: "+91 9585420222",
   address: "14, Vaniga Valagam, Kovai to Karur Main Road, K. Paramathi, Karur - 639111",
 };

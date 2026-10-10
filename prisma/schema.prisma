@@ -392,6 +392,16 @@ enum PaymentStatus {
   COD_COLLECTED
 }
 
+enum PaymentIntentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+  COD_PENDING
+  COD_COLLECTED
+}
+
 enum ShipmentStatus {
   NOT_CREATED
   READY_TO_SHIP
@@ -466,7 +476,7 @@ model PaymentIntent {
   amount          Int
   gatewayOrderId  String?       @unique
   createdOrderId  String?       @unique
-  status          PaymentStatus @default(PENDING)
+  status          PaymentIntentStatus @default(PENDING)
   expiresAt       DateTime
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

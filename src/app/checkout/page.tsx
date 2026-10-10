@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import Script from "next/script";
 import { MapPin, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/components/providers/cart-provider";
 import { usePricedCart } from "@/hooks/use-priced-cart";
@@ -19,13 +18,7 @@ import { cn, formatINR } from "@/lib/utils";
 import type { AddressInput } from "@/lib/validations/checkout";
 import type { Address, PaymentMethod } from "@prisma/client";
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
-      open: () => void;
-    };
-  }
-}
+type PayUCheckout = { actionUrl: string; fields: Record<string, string> };
 
 export default function CheckoutPage() {
   const { data: session, status } = useSession();
@@ -49,7 +42,8 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("COD");
   const [placingOrder, setPlacingOrder] = useState(false);
   const [placeError, setPlaceError] = useState<string | null>(null);
-  const [razorpayReady, setRazorpayReady] = useState(false);
+  const [payuCheckout, setPayuCheckout] = useState<PayUCheckout | null>(null);
+  const payuFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -65,6 +59,21 @@ export default function CheckoutPage() {
       setShowNewAddressForm(true);
     }
   }, [status]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const paymentResult = url.searchParams.get("payment");
+    if (paymentResult === "failed") setPlaceError("PayU payment failed. Your order was not placed; you can try again.");
+    if (paymentResult === "pending") setPlaceError("PayU is still processing the payment. Please check your payment status before trying again.");
+    if (paymentResult) {
+      url.searchParams.delete("payment");
+      window.history.replaceState({}, "", url);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (payuCheckout) payuFormRef.current?.submit();
+  }, [payuCheckout]);
 
   if (!isHydrated || status === "loading" || (isPricing && !priced)) return <PageSpinner />;
 
@@ -133,63 +142,12 @@ export default function CheckoutPage() {
         return;
       }
 
-      // ONLINE — /api/checkout already created the Razorpay order.
-      if (!data.gatewayOrderId || !data.paymentIntentId || !data.keyId) {
-        setPlaceError("Online payment isn't available right now — please try Cash on Delivery.");
+      if (!data.payuCheckout?.actionUrl || !data.payuCheckout?.fields) {
+        setPlaceError("PayU checkout isn't available right now — please try Cash on Delivery.");
         setPlacingOrder(false);
         return;
       }
-      if (!razorpayReady || !window.Razorpay) {
-        setPlaceError("Payment checkout is still loading. Please try again in a moment.");
-        setPlacingOrder(false);
-        return;
-      }
-
-      const rzp = new window.Razorpay({
-        key: data.keyId,
-        amount: data.amountInPaise,
-        currency: data.currency,
-        name: "ADHYANTHA Goat Manure",
-        description: `Order ${data.orderNumber}`,
-        order_id: data.gatewayOrderId,
-        prefill: {
-          name: session?.user?.name ?? guestName,
-          email: session?.user?.email ?? guestEmail,
-          contact: guestPhone,
-        },
-        theme: { color: "#2B4C1F" },
-        handler: async (response: {
-          razorpay_order_id: string;
-          razorpay_payment_id: string;
-          razorpay_signature: string;
-        }) => {
-          const verifyRes = await fetch("/api/payment/razorpay/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paymentIntentId: data.paymentIntentId, ...response }),
-          });
-          if (verifyRes.ok) {
-            const verifiedOrder = await verifyRes.json();
-            clearCart();
-            router.push(`/order-success/${verifiedOrder.orderId}`);
-          } else {
-            show("Payment was not completed, so the order was not placed.", "error");
-            setPlacingOrder(false);
-          }
-        },
-        "payment.failed": () => {
-          show("Payment failed — your order was not placed.", "error");
-          setPlacingOrder(false);
-        },
-        modal: {
-          ondismiss: () => {
-            show("Payment cancelled — your order was not placed.", "error");
-            setPlacingOrder(false);
-          },
-        },
-      });
-      rzp.open();
-      setPlacingOrder(false);
+      setPayuCheckout(data.payuCheckout);
     } catch {
       setPlaceError("Something went wrong. Please try again.");
       setPlacingOrder(false);
@@ -198,12 +156,13 @@ export default function CheckoutPage() {
 
   return (
     <div className="container-page py-8 sm:py-12">
-      <Script
-        src="https://checkout.razorpay.com/v1/checkout.js"
-        strategy="afterInteractive"
-        onLoad={() => setRazorpayReady(true)}
-        onError={() => setPlaceError("Unable to load Razorpay checkout. Please try again later.")}
-      />
+      {payuCheckout && (
+        <form ref={payuFormRef} action={payuCheckout.actionUrl} method="post" className="hidden">
+          {Object.entries(payuCheckout.fields).map(([name, value]) => (
+            <input key={name} type="hidden" name={name} value={value} />
+          ))}
+        </form>
+      )}
       <h1 className="font-display text-3xl font-medium sm:text-4xl">Checkout</h1>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">

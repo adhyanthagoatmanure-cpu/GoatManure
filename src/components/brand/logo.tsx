@@ -30,7 +30,7 @@ export function Logo({
           width={2200}
           height={700}
           sizes="(min-width: 640px) 220px, 180px"
-          className="h-auto w-[180px] object-contain sm:w-[220px]"
+          className="h-auto w-[min(180px,44vw)] object-contain sm:w-[220px]"
           priority
         />
       ) : (

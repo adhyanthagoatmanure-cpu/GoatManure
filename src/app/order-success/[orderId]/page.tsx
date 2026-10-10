@@ -6,9 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 import { formatINR, formatDate, formatOrderNumber } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS } from "@/types";
+import { ClearCartOnPayUSuccess } from "@/components/checkout/clear-cart-on-payu-success";
 
-export default async function OrderSuccessPage({ params }: { params: Promise<{ orderId: string }> }) {
-  const { orderId } = await params;
+export default async function OrderSuccessPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ clearCart?: string }>;
+}) {
+  const [{ orderId }, query] = await Promise.all([params, searchParams]);
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: { items: true, user: true },
@@ -22,6 +29,7 @@ export default async function OrderSuccessPage({ params }: { params: Promise<{ o
 
   return (
     <div className="container-page py-12 sm:py-16">
+      <ClearCartOnPayUSuccess enabled={query.clearCart === "1"} />
       <div className="mx-auto max-w-2xl text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-success-bg)]">
           <CheckCircle2 className="h-8 w-8 text-[var(--color-success)]" />

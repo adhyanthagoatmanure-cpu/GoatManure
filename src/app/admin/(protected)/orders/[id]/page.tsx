@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Package, MapPin, CreditCard, Truck, User as UserIcon, Printer } from "lucide-react";
-import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageSpinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/providers/toast-provider";
-import { formatDateTime, formatINR, formatOrderNumber } from "@/lib/utils";
+import { formatDateTime, formatINR } from "@/lib/utils";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_TONE,
@@ -105,7 +104,7 @@ export default function AdminOrderDetailPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-medium">{formatOrderNumber(order.orderNumber)}</h1>
+          <h1 className="font-display text-2xl font-medium">{order.orderNumber}</h1>
           <p className="text-sm text-[var(--color-stone)]">Placed {formatDateTime(order.createdAt)}</p>
         </div>
         <div className="flex items-center gap-3">
@@ -203,45 +202,23 @@ export default function AdminOrderDetailPage() {
         <div className="print-label-content">
           <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-3">
             <div>
-              <Image
-                src="/images/brand/logo-lockup.png"
-                alt="ADHYANTHA Goat Manure"
-                width={2200}
-                height={700}
-                className="print-label-logo"
-              />
+              <p className="text-xs font-bold uppercase tracking-[0.2em]">ADHYANTHA</p>
               <p className="mt-1 text-2xl font-bold">SHIP TO</p>
             </div>
-            <p className="text-right text-sm font-semibold">Order {formatOrderNumber(order.orderNumber)}</p>
+            <p className="text-right text-sm font-semibold">Order {order.orderNumber}</p>
           </div>
           <div className="py-5 text-lg leading-relaxed">
             <p className="text-2xl font-bold">{order.shippingSnapshot.fullName}</p>
             <p>{order.shippingSnapshot.phone}</p>
-            <p className="text-base">{order.user?.email ?? order.guestEmail ?? ""}</p>
             <p>{order.shippingSnapshot.line1}</p>
             {order.shippingSnapshot.line2 && <p>{order.shippingSnapshot.line2}</p>}
             <p>{order.shippingSnapshot.city}, {order.shippingSnapshot.state}</p>
             <p className="text-2xl font-bold">{order.shippingSnapshot.pincode}</p>
           </div>
-          <div className="border-t-2 border-black py-4">
-            <p className="text-xs font-bold uppercase tracking-wider">Order Items</p>
-            <div className="mt-2 space-y-1 text-sm">
-              {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between gap-3">
-                  <span>{item.productName} · {item.weightLabel} × {item.quantity}</span>
-                  <span className="shrink-0 font-semibold">{formatINR(item.lineTotal)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 flex justify-between border-t border-black pt-2 text-base font-bold">
-              <span>Total · {PAYMENT_METHOD_LABELS[order.paymentMethod]}</span>
-              <span>{formatINR(order.totalAmount)}</span>
-            </div>
-          </div>
           <div className="border-t-2 border-black pt-4">
             <p className="text-xs font-bold uppercase tracking-wider">{order.shippingProvider || "Courier"} · Tracking ID</p>
             <p className="mt-1 text-xl font-bold">{order.trackingNumber || "Not assigned"}</p>
-            <Code128Barcode value={order.trackingNumber || formatOrderNumber(order.orderNumber)} />
+            <Code128Barcode value={order.trackingNumber || order.orderNumber} />
           </div>
         </div>
       </div>

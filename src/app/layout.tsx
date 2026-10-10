@@ -9,7 +9,7 @@ import { SITE } from "@/lib/config";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: `${SITE.name} — ${SITE.tagline}`,
+    default: SITE.name,
     template: `%s | ${SITE.shortName}`,
   },
   description:

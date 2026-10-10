@@ -16,7 +16,7 @@ export function PaymentMethodSelector({
       value: "ONLINE",
       icon: Wallet,
       title: "Online Payment",
-      description: "UPI, Cards, Netbanking & Wallets — pay securely via Razorpay",
+      description: "UPI, Cards, Netbanking & Wallets — pay securely via PayU",
     },
     {
       value: "COD",

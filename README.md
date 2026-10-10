@@ -15,7 +15,7 @@ separate admin console for products, orders, coupons, customers, blog, and testi
 | ORM | Prisma 6.12.0 |
 | Auth | NextAuth v4 (Credentials + Google + Facebook), bcrypt password hashing |
 | Validation | Zod (shared between client forms and API routes) |
-| Payments | Razorpay, behind a swappable `PaymentProvider` interface |
+| Payments | PayU India Hosted Checkout with server-side SHA-512 verification |
 | Forms | react-hook-form + @hookform/resolvers |
 
 ## What works right now, with zero configuration
@@ -40,12 +40,48 @@ integration that activates the moment you add real credentials to `.env`:
 |---|---|---|
 | Google login | `GOOGLE_CLIENT_ID/SECRET` | Button is hidden |
 | Facebook login | `FACEBOOK_CLIENT_ID/SECRET` | Button is hidden |
-| Online payment (Razorpay) | `RAZORPAY_KEY_ID/SECRET` | Checkout shows "Online payments aren't configured yet — please use Cash on Delivery" instead of faking a payment |
+| Online payment (PayU India) | `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `PAYU_ENV` | Checkout reports that PayU is not configured; Cash on Delivery remains available |
 | Transactional email (order confirmation, password reset) | `SMTP_*` | Emails are logged to the server console instead of sent |
 | Admin order alerts (email + WhatsApp) | `ADMIN_NOTIFICATION_EMAIL`, `SMTP_*`, `WHATSAPP_*` | Order creation still succeeds; missing channels are logged to the server console |
 | Database | `DATABASE_URL` | App won't start — see setup below |
 
 See `.env.example` for the full list and where to get each credential.
+
+## PayU India Hosted Checkout
+
+The online checkout sends customers to PayU's hosted payment page. The merchant
+salt and request hash stay on the server; payment intents are marked paid only
+after the callback hash, transaction ID, and amount are verified.
+
+Configure these server-side variables in local `.env` and in the production
+hosting environment:
+
+- `PAYU_MERCHANT_KEY` and `PAYU_MERCHANT_SALT` from the same PayU account
+  environment.
+- `PAYU_ENV="test"` with test credentials, or `PAYU_ENV="production"` with
+  live credentials. `"live"` remains accepted as a compatibility alias.
+- `NEXTAUTH_URL` set to the public site origin. PayU posts its success and
+  failure response to `{NEXTAUTH_URL}/api/payment/payu/callback`; that endpoint
+  must be publicly reachable over HTTPS in production. Production mode rejects
+  localhost callback URLs because PayU cannot call a local development server.
+
+Set these variables in the hosting provider's server-side environment settings
+as well as local `.env`. Configure `PAYU_MERCHANT_KEY` and
+`PAYU_MERCHANT_SALT` as secrets (not `NEXT_PUBLIC_*` variables), set
+`PAYU_ENV` to `production`, and set `NEXTAUTH_URL` to the deployed HTTPS origin.
+Redeploy or restart the application after changing environment variables so
+the server process picks them up. No PayU credentials should be committed.
+
+Apply the included Prisma migration before deploying:
+
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
+
+Test a successful and failed payment with PayU test credentials before switching
+`PAYU_ENV` and credentials to production. Never put the merchant salt in a
+`NEXT_PUBLIC_*` variable or send it to the browser.
 
 When configured, every successful order sends a detailed email to
 `ADMIN_NOTIFICATION_EMAIL` and a WhatsApp alert through Meta's WhatsApp Cloud API
@@ -193,17 +229,16 @@ src/
     product/ cart/ checkout/ order/ auth/ account/ admin/ blog/ testimonial/ brand/
   server/
     services/              Business logic — pricing, coupons, orders (transactional)
-    payment/                PaymentProvider interface + Razorpay implementation
+    payment/                PayU Hosted Checkout + legacy Razorpay provider
     shipping/               ShippingProvider interface + manual implementation
     email/                  EmailService interface + SMTP/console implementations
   lib/                     prisma client, auth config, validation schemas, utils
   types/                   Shared TS types, status label/tone maps
 ```
 
-Payments, shipping, and email are all behind interfaces specifically so a second
-provider (a different gateway, a courier aggregator like Shiprocket, a transactional
-email API) can be swapped in without touching order/checkout logic — see the comments
-in each `*-provider.ts` / `email-service.ts` file.
+Shipping and email are behind interfaces so providers can be changed without
+touching order logic. The active online checkout uses PayU Hosted Checkout; the
+Razorpay provider remains only for its legacy API routes.
 
 ## Honest scope notes
 
@@ -224,7 +259,7 @@ superficially covering every line item. A few things worth knowing:
 
 ## Next steps for a real launch
 
-1. Add real credentials (§ above) for OAuth, Razorpay, and SMTP
+1. Add real credentials (§ above) for OAuth, PayU, and SMTP
 2. Replace placeholder product photography and contact details
 3. Point `DATABASE_URL` at a production Postgres and run `prisma migrate deploy`
 4. Change the seeded admin password immediately

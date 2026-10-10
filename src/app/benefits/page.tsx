@@ -67,36 +67,37 @@ export default async function BenefitsPage() {
     <main className="bg-[var(--color-parchment)] text-[var(--color-ink)]">
       <section className="container-page">
         <div className="relative overflow-hidden rounded-b-[26px] shadow-[0_20px_40px_rgba(31,44,16,0.08)]">
-          <div className="relative h-[320px] sm:h-[360px] lg:h-[390px]">
+          <div className="relative h-[290px] sm:h-[360px] lg:h-[390px]">
             <Image
               src="/images/01-hero-gardening-soil.png"
               alt="Gardener planting a seedling in rich organic soil"
               fill
               priority
               sizes="100vw"
-              className="object-cover"
+              className="object-cover object-[68%_center] sm:object-center"
             />
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(18,24,14,0.72),rgba(18,24,14,0.38),rgba(18,24,14,0.12))]" />
 
             <div className="relative z-10 flex h-full items-center">
-              <div className="max-w-[600px] px-5 py-8 sm:px-8 lg:px-10">
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--color-parchment)]/85">
+              <div className="max-w-[600px] px-5 py-5 sm:px-8 sm:py-8 lg:px-10">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-parchment)]/85 sm:mb-3 sm:text-[11px] sm:tracking-[0.22em]">
                   WHY ORGANIC MATTERS
                 </p>
-                <h1 className="max-w-[560px] font-display text-[clamp(2.6rem,4vw,4rem)] leading-[0.9] tracking-[-0.06em] text-white">
+                <h1 className="max-w-[560px] font-display text-[clamp(1.8rem,7.5vw,2.35rem)] leading-[0.95] tracking-[-0.05em] text-white sm:text-[clamp(2.6rem,4vw,4rem)] sm:leading-[0.9] sm:tracking-[-0.06em]">
                   UNLEASH YOUR GARDEN&apos;S
-                  <br />
+                  <br className="hidden sm:block" />
+                  <span className="sm:hidden"> </span>
                   POTENTIAL, NATURALLY.
                 </h1>
-                <p className="mt-4 max-w-[540px] text-sm leading-relaxed text-white/80 sm:text-[15px] lg:text-base">
+                <p className="mt-3 max-w-[540px] text-[13px] leading-relaxed text-white/80 sm:mt-4 sm:text-[15px] lg:text-base">
                   Organic goat manure fertilizer enriches the soil with balanced nutrients, improves soil health,
                   and helps your garden thrive naturally.
                 </p>
                 <Link
                   href="#benefits"
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[var(--color-parchment)] px-5 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-canopy-dark)] transition-colors hover:bg-white"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-parchment)] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-canopy-dark)] transition-colors hover:bg-white sm:mt-6 sm:gap-2 sm:px-5 sm:py-3 sm:text-[11px] sm:tracking-[0.12em]"
                 >
-                  EXPLORE THE BENEFITS <ArrowRight className="h-3.5 w-3.5" />
+                  EXPLORE THE BENEFITS <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 </Link>
               </div>
             </div>
@@ -104,14 +105,14 @@ export default async function BenefitsPage() {
         </div>
       </section>
 
-      <section id="benefits" className="container-page py-12 sm:py-14 lg:py-16">
+      <section id="benefits" className="container-page py-6 sm:py-14 lg:py-16">
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {BENEFITS.map((benefit) => (
             <article
               key={benefit.title}
-              className="rounded-[20px] border border-[var(--color-border)] bg-white p-5 shadow-[0_10px_24px_rgba(42,42,34,0.04)] transition-transform duration-200 hover:-translate-y-1"
+              className="rounded-[20px] border border-[var(--color-border)] bg-white p-4 shadow-[0_10px_24px_rgba(42,42,34,0.04)] transition-transform duration-200 hover:-translate-y-1 sm:p-5"
             >
-              <div className="flex h-[140px] items-center justify-center overflow-hidden rounded-[18px] bg-[var(--color-parchment)] p-3">
+              <div className="flex h-24 items-center justify-center overflow-hidden rounded-[18px] bg-[var(--color-parchment)] p-2 sm:h-[140px] sm:p-3">
                 <Image
                   src={benefit.image}
                   alt={benefit.alt}
@@ -121,10 +122,10 @@ export default async function BenefitsPage() {
                   className="h-full w-full object-contain"
                 />
               </div>
-              <h2 className="mt-4 text-[1.35rem] font-semibold uppercase leading-tight tracking-[-0.05em] text-[var(--color-canopy)]">
+              <h2 className="mt-3 text-lg font-semibold uppercase leading-tight tracking-[-0.04em] text-[var(--color-canopy)] sm:mt-4 sm:text-[1.35rem] sm:tracking-[-0.05em]">
                 {benefit.title}
               </h2>
-              <p className="mt-2 text-[15px] leading-relaxed text-[var(--color-stone)]">{benefit.description}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-stone)] sm:mt-2 sm:text-[15px]">{benefit.description}</p>
             </article>
           ))}
         </div>

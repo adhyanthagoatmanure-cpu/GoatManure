@@ -18,12 +18,16 @@ export function BlogCard({ post, index = 0 }: { post: BlogPost; index?: number }
       className="group flex flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] transition-shadow hover:shadow-[var(--shadow-lifted)]"
     >
       <div
-        className="relative flex aspect-[16/10] items-center justify-center overflow-hidden"
+        className="relative flex aspect-auto items-center justify-center overflow-hidden sm:aspect-[16/10]"
         style={{ backgroundColor: CARD_TINTS[index % CARD_TINTS.length] }}
       >
         {/* Blog images may be local uploads or existing absolute URLs. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={post.featuredImage || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={post.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+        <img
+          src={post.featuredImage || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]}
+          alt={post.title}
+          className="h-auto w-full object-contain transition-transform duration-300 group-hover:scale-105 sm:h-full sm:object-cover"
+        />
         {post.category && (
           <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--color-ink)]">
             {post.category}

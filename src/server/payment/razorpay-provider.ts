@@ -65,7 +65,7 @@ class RazorpayProvider implements PaymentProvider {
 
 let instance: PaymentProvider | null = null;
 
-/** Swap the provider here if a second gateway is added later. */
+/** Provides Razorpay operations for the legacy Razorpay-specific API routes. */
 export function getPaymentProvider(): PaymentProvider {
   if (!instance) instance = new RazorpayProvider();
   return instance;

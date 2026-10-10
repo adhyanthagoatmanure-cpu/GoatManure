@@ -5,7 +5,7 @@ import { priceCart } from "@/server/services/pricing.service";
 import { notifyOrder } from "@/server/services/order-notification.service";
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { prisma } from "@/lib/prisma";
-import { getPaymentProvider } from "@/server/payment/razorpay-provider";
+import { createPayUCheckout, getPayUConfig } from "@/server/payment/payu-provider";
 import { generateOrderNumber } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 import { createAdminNotification } from "@/server/services/admin-notification.service";
@@ -30,19 +30,39 @@ export async function POST(req: Request) {
   }
 
   if (input.paymentMethod === "ONLINE") {
-    const provider = getPaymentProvider();
-    if (!provider.isConfigured) {
+    const payuConfig = getPayUConfig();
+    if (!payuConfig) {
       return NextResponse.json(
-        { error: "Online payments are not configured yet. Please choose Cash on Delivery, or contact support." },
+        { error: "PayU payments are not configured yet. Please choose Cash on Delivery, or contact support." },
         { status: 503 }
       );
     }
 
-    if (input.addressId) {
-      const address = session?.user?.id
-        ? await prisma.address.findFirst({ where: { id: input.addressId, userId: session.user.id } })
-        : null;
-      if (!address) return NextResponse.json({ error: "Please provide a valid shipping address." }, { status: 409 });
+    const [user, savedAddress] = await Promise.all([
+      session?.user?.id
+        ? prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { name: true, email: true, phone: true },
+          })
+        : null,
+      input.addressId && session?.user?.id
+        ? prisma.address.findFirst({
+            where: { id: input.addressId, userId: session.user.id },
+          })
+        : null,
+    ]);
+    if (input.addressId && !savedAddress) {
+      return NextResponse.json({ error: "Please provide a valid shipping address." }, { status: 409 });
+    }
+
+    const firstName = input.guestName ?? savedAddress?.fullName ?? input.newAddress?.fullName ?? user?.name;
+    const email = input.guestEmail ?? user?.email;
+    const phone = input.guestPhone ?? savedAddress?.phone ?? input.newAddress?.phone ?? user?.phone;
+    if (!firstName?.trim() || !email?.trim() || !phone?.trim()) {
+      return NextResponse.json(
+        { error: "Please provide a name, email, and phone number to continue with PayU." },
+        { status: 400 }
+      );
     }
 
     const priced = await priceCart(input.items, {
@@ -62,9 +82,9 @@ export async function POST(req: Request) {
     const paymentIntent = await prisma.paymentIntent.create({
       data: {
         userId: session?.user?.id ?? null,
-        guestName: input.guestName,
-        guestEmail: input.guestEmail,
-        guestPhone: input.guestPhone,
+        guestName: firstName.trim(),
+        guestEmail: email.trim(),
+        guestPhone: phone.trim(),
         addressId: input.addressId,
         newAddress: input.newAddress as Prisma.InputJsonValue | undefined,
         items: input.items as Prisma.InputJsonValue,
@@ -75,24 +95,17 @@ export async function POST(req: Request) {
       },
     });
     const receipt = generateOrderNumber();
-    let gatewayOrder;
-    try {
-      gatewayOrder = await provider.createOrder({
-        orderId: paymentIntent.id,
-        amountInRupees: priced.totalAmount,
-        receipt,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to create Razorpay order";
-      const isAuthFailure = /authentication|unauthorized|invalid key|bad request/i.test(message);
-      return NextResponse.json(
-        { error: isAuthFailure ? "Razorpay authentication failed" : "Unable to create payment order" },
-        { status: isAuthFailure ? 401 : 500 }
-      );
-    }
+    const payuCheckout = createPayUCheckout(payuConfig, {
+      transactionId: paymentIntent.id,
+      amountInRupees: priced.totalAmount,
+      productInfo: `ADHYANTHA order ${receipt}`,
+      firstName: firstName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+    });
     await prisma.paymentIntent.update({
       where: { id: paymentIntent.id },
-      data: { gatewayOrderId: gatewayOrder.gatewayOrderId },
+      data: { gatewayOrderId: paymentIntent.id },
     });
 
     return NextResponse.json({
@@ -100,9 +113,7 @@ export async function POST(req: Request) {
       orderNumber: receipt,
       paymentMethod: input.paymentMethod,
       totalAmount: priced.totalAmount,
-      order_id: gatewayOrder.gatewayOrderId,
-      amount: gatewayOrder.amountInPaise,
-      ...gatewayOrder,
+      payuCheckout,
     });
   }
 

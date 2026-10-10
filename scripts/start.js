@@ -1,4 +1,7 @@
+/* eslint @typescript-eslint/no-require-imports: off */
 const { spawn, spawnSync } = require("node:child_process");
+
+require("@next/env").loadEnvConfig(process.cwd());
 
 function configureDatabaseUrl() {
   if (process.env.DATABASE_URL) {

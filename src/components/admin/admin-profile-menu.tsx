@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 import { ChevronDown, LayoutDashboard, LogOut, UserCircle2 } from "lucide-react";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 export function AdminProfileMenu({
   adminName,
@@ -15,6 +15,7 @@ export function AdminProfileMenu({
   adminImage?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const signOutAndNavigate = useSignOut("/admin/login");
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,7 +80,10 @@ export function AdminProfileMenu({
             </Link>
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: "/admin/login" })}
+              onClick={() => {
+                setOpen(false);
+                void signOutAndNavigate();
+              }}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#b84f4f] transition hover:bg-[#fff2f2]"
             >
               <LogOut className="h-4 w-4" />

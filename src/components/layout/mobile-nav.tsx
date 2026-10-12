@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
 import type { Session } from "next-auth";
 import {
   X,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 const ICONS: Record<string, typeof Home> = {
   "/": Home,
@@ -45,6 +45,7 @@ export function MobileNav({
   session: Session | null;
 }) {
   const router = useRouter();
+  const signOutAndNavigate = useSignOut("/");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -126,7 +127,10 @@ export function MobileNav({
                   <MobileAccountLink href="/admin" icon={LayoutDashboard} label="Go to Admin Panel" />
                 )}
                 <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
+                  onClick={() => {
+                    onClose();
+                    void signOutAndNavigate();
+                  }}
                   className="flex items-center gap-3.5 rounded-[var(--radius-sm)] px-3 py-3.5 text-left text-[15px] font-medium text-[var(--color-error)] active:bg-[var(--color-parchment-deep)]"
                 >
                   <LogOut className="h-5 w-5" /> Logout

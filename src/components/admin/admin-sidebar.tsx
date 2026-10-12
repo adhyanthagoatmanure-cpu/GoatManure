@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Package,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 const LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -36,6 +36,7 @@ const LINKS = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const signOutAndNavigate = useSignOut("/admin/login");
 
   return (
     <aside className="hidden w-[250px] shrink-0 flex-col bg-[#003d27] text-[#edf7f2] lg:flex">
@@ -107,7 +108,7 @@ export function AdminSidebar() {
         </div>
 
         <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={() => void signOutAndNavigate()}
           className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-left text-sm font-medium text-[#edf7f2] transition-colors hover:bg-white/8"
         >
           <span className="flex items-center gap-3">

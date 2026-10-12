@@ -38,30 +38,52 @@ export function BlogPostForm({ postId, defaultValues }: { postId?: string; defau
   async function onSubmit(values: BlogPostInput) {
     setServerError(null);
     let featuredImage = values.featuredImage || "";
-    if (imageFile) {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-      const uploadRes = await fetch("/api/admin/blog/images", { method: "POST", body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) {
-        setServerError(uploadData.error ?? "Could not upload blog image");
+    let uploadedImage: string | undefined;
+    try {
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        const uploadRes = await fetch("/api/admin/blog/images", { method: "POST", body: formData });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) {
+          setServerError(uploadData.error ?? "Could not upload blog image");
+          return;
+        }
+        featuredImage = uploadData.url;
+        uploadedImage = featuredImage;
+      }
+
+      const res = await fetch(postId ? `/api/admin/blog/${postId}` : "/api/admin/blog", {
+        method: postId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...values, featuredImage: featuredImage || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        await releaseUploadedImage(uploadedImage);
+        setServerError(data.error ?? "Something went wrong");
         return;
       }
-      featuredImage = uploadData.url;
+      show(postId ? "Article updated" : "Article created");
+      router.push("/admin/blog");
+      router.refresh();
+    } catch {
+      await releaseUploadedImage(uploadedImage);
+      setServerError("Could not save the article. Please try again.");
     }
-    const res = await fetch(postId ? `/api/admin/blog/${postId}` : "/api/admin/blog", {
-      method: postId ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...values, featuredImage: featuredImage || undefined }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setServerError(data.error ?? "Something went wrong");
-      return;
+  }
+
+  async function releaseUploadedImage(url: string | undefined) {
+    if (!url) return;
+    try {
+      await fetch("/api/admin/blog/images", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls: [url] }),
+      });
+    } catch {
+      console.error("Could not request cleanup for an uncommitted blog image");
     }
-    show(postId ? "Article updated" : "Article created");
-    router.push("/admin/blog");
-    router.refresh();
   }
 
   return (

@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { AuthShell, OrDivider } from "@/components/auth/auth-shell";
 import { SocialLoginButtons } from "@/components/auth/social-login-buttons";
+import { WhatsAppOtpLogin } from "@/components/auth/whatsapp-otp-login";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LogIn } from "lucide-react";
@@ -32,15 +33,6 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") ?? "/account";
   const oauthError = searchParams.get("error");
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      const destination = session?.user.needsProfileCompletion
-        ? `/complete-profile?callbackUrl=${encodeURIComponent(callbackUrl)}`
-        : callbackUrl;
-      router.replace(destination);
-    }
-  }, [callbackUrl, router, session?.user.needsProfileCompletion, status]);
-
   const [serverError, setServerError] = useState<string | null>(
     oauthError ? NEXTAUTH_ERROR_MESSAGES[oauthError] ?? NEXTAUTH_ERROR_MESSAGES.Default : null
   );
@@ -51,17 +43,23 @@ function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
+  useEffect(() => {
+    if (status === "authenticated" && !isSubmitting) {
+      const destination = session?.user.needsProfileCompletion
+        ? `/complete-profile?callbackUrl=${encodeURIComponent(callbackUrl)}`
+        : callbackUrl;
+      router.replace(destination);
+    }
+  }, [callbackUrl, isSubmitting, router, session?.user.needsProfileCompletion, status]);
+
   if (status === "authenticated") return null;
 
   async function onSubmit(values: LoginInput) {
     setServerError(null);
-    const res = await signIn("credentials", { ...values, redirect: false });
-    if (res?.error) {
+    const res = await signIn("credentials", { ...values, redirect: false, redirectTo: callbackUrl });
+    if (!res?.ok || res.error) {
       setServerError(NEXTAUTH_ERROR_MESSAGES.CredentialsSignin);
-      return;
     }
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   return (
@@ -93,6 +91,8 @@ function LoginForm() {
           <LogIn className="h-4 w-4" /> Login
         </Button>
       </form>
+      <OrDivider />
+      <WhatsAppOtpLogin callbackUrl={callbackUrl} />
       <OrDivider />
       <SocialLoginButtons callbackUrl={callbackUrl} />
     </AuthShell>

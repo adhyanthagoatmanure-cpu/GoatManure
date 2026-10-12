@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 import { Menu, X, LayoutDashboard, Package, ShoppingCart, Users, Tag, Newspaper, MessageSquareQuote, LogOut, Leaf } from "lucide-react";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 const LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +20,7 @@ const LINKS = [
 
 export function AdminMobileHeader({ adminName }: { adminName: string }) {
   const [open, setOpen] = useState(false);
+  const signOutAndNavigate = useSignOut("/admin/login");
 
   return (
     <>
@@ -52,7 +53,10 @@ export function AdminMobileHeader({ adminName }: { adminName: string }) {
                 </Link>
               ))}
               <button
-                onClick={() => signOut({ callbackUrl: "/admin/login" })}
+                onClick={() => {
+                  setOpen(false);
+                  void signOutAndNavigate();
+                }}
                 className="mt-2 flex items-center gap-3 rounded-[var(--radius-sm)] px-3.5 py-3 text-left text-sm font-medium text-[var(--color-error)] hover:bg-[var(--color-error-bg)]"
               >
                 <LogOut className="h-4 w-4" /> Logout

@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { indianMobileNumberSchema } from "./phone";
 
 export const addressSchema = z.object({
   fullName: z.string().trim().min(2, "Enter the recipient's full name").max(100),
-  phone: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
+  phone: indianMobileNumberSchema,
   line1: z.string().trim().min(5, "Enter your full address"),
   line2: z.string().trim().max(200).optional().or(z.literal("")),
   city: z.string().trim().min(2, "Enter a city"),
@@ -16,11 +17,7 @@ export type AddressInput = z.infer<typeof addressSchema>;
 export const checkoutSchema = z.object({
   guestName: z.string().trim().min(2, "Enter your full name").max(100).optional(),
   guestEmail: z.string().trim().toLowerCase().email("Enter a valid email address").optional(),
-  guestPhone: z
-    .string()
-    .trim()
-    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number")
-    .optional(),
+  guestPhone: indianMobileNumberSchema.optional(),
   addressId: z.string().optional(),
   newAddress: addressSchema.optional(),
   couponCode: z.string().trim().toUpperCase().optional().or(z.literal("")),

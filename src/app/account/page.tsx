@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
@@ -6,7 +7,8 @@ import { Mail, Phone, Calendar } from "lucide-react";
 
 export default async function ProfilePage() {
   const session = await auth();
-  const user = await prisma.user.findUnique({ where: { id: session!.user.id } });
+  if (!session?.user) redirect("/login?callbackUrl=/account");
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) return null;
 
   return (

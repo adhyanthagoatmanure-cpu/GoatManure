@@ -25,8 +25,8 @@ function AdminLoginForm() {
 
   async function onSubmit(values: AdminLoginInput) {
     setServerError(null);
-    const res = await signIn("credentials", { ...values, redirect: false });
-    if (res?.error) {
+    const res = await signIn("credentials", { ...values, redirect: false, redirectTo: from });
+    if (!res?.ok || res.error) {
       setServerError("Incorrect email or password.");
       return;
     }
@@ -35,8 +35,7 @@ function AdminLoginForm() {
       setServerError("This account does not have admin access.");
       return;
     }
-    router.push(from);
-    router.refresh();
+    router.replace(from);
   }
 
   return (

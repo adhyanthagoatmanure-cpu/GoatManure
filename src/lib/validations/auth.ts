@@ -1,13 +1,11 @@
 import { z } from "zod";
+import { indianMobileNumberSchema } from "./phone";
 
 export const signupSchema = z
   .object({
     name: z.string().trim().min(2, "Enter your full name").max(100),
     email: z.string().trim().toLowerCase().email("Enter a valid email address"),
-    phone: z
-      .string()
-      .trim()
-      .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
+    phone: indianMobileNumberSchema,
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")

@@ -33,7 +33,7 @@ export function SocialLoginButtons({ callbackUrl = "/" }: { callbackUrl?: string
         variant="outline"
         size="lg"
         className="w-full"
-        onClick={() => signIn("google", { callbackUrl: `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` })}
+        onClick={() => signIn("google", { redirectTo: `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` })}
       >
         <GoogleMark /> Continue with Google
       </Button>
@@ -42,7 +42,7 @@ export function SocialLoginButtons({ callbackUrl = "/" }: { callbackUrl?: string
         variant="outline"
         size="lg"
         className="w-full"
-        onClick={() => signIn("facebook", { callbackUrl })}
+        onClick={() => signIn("facebook", { redirectTo: callbackUrl })}
       >
         <FacebookMark /> Continue with Facebook
       </Button>

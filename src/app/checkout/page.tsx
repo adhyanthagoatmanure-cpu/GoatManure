@@ -16,6 +16,7 @@ import { PageSpinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatINR } from "@/lib/utils";
 import type { AddressInput } from "@/lib/validations/checkout";
+import { indianMobileNumberSchema } from "@/lib/validations/phone";
 import type { Address, PaymentMethod } from "@prisma/client";
 
 type PayUCheckout = { actionUrl: string; fields: Record<string, string> };
@@ -65,6 +66,7 @@ export default function CheckoutPage() {
     const paymentResult = url.searchParams.get("payment");
     if (paymentResult === "failed") setPlaceError("PayU payment failed. Your order was not placed; you can try again.");
     if (paymentResult === "pending") setPlaceError("PayU is still processing the payment. Please check your payment status before trying again.");
+    if (paymentResult === "invalid") setPlaceError("We could not verify the payment response. No order was marked as paid. Please check your payment status or try again.");
     if (paymentResult) {
       url.searchParams.delete("payment");
       window.history.replaceState({}, "", url);
@@ -96,7 +98,8 @@ export default function CheckoutPage() {
     const errors: Record<string, string> = {};
     if (!guestName.trim() || guestName.trim().length < 2) errors.guestName = "Enter your full name";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) errors.guestEmail = "Enter a valid email address";
-    if (!/^[6-9]\d{9}$/.test(guestPhone)) errors.guestPhone = "Enter a valid 10-digit mobile number";
+    const phone = indianMobileNumberSchema.safeParse(guestPhone);
+    if (!phone.success) errors.guestPhone = phone.error.issues[0]?.message ?? "Enter a valid 10-digit Indian mobile number";
     setGuestErrors(errors);
     return Object.keys(errors).length === 0;
   }

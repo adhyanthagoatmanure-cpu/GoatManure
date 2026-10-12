@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { auth } from "@/lib/auth";
 import { createOrder } from "@/server/services/order.service";
 import { priceCart } from "@/server/services/pricing.service";
 import { notifyOrder } from "@/server/services/order-notification.service";
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { prisma } from "@/lib/prisma";
-import { createPayUCheckout, getPayUConfig } from "@/server/payment/payu-provider";
-import { generateOrderNumber } from "@/lib/utils";
+import { createPayUCheckoutForIntent, getPayUConfig } from "@/server/payment/payu-provider";
 import type { Prisma } from "@prisma/client";
 import { createAdminNotification } from "@/server/services/admin-notification.service";
 
@@ -79,6 +79,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: priced.couponError }, { status: 409 });
     }
 
+    const transactionId = randomBytes(12).toString("hex");
     const paymentIntent = await prisma.paymentIntent.create({
       data: {
         userId: session?.user?.id ?? null,
@@ -91,26 +92,20 @@ export async function POST(req: Request) {
         couponCode: input.couponCode || null,
         customerNote: input.customerNote,
         amount: priced.totalAmount,
+        gatewayOrderId: transactionId,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000),
       },
     });
-    const receipt = generateOrderNumber();
-    const payuCheckout = createPayUCheckout(payuConfig, {
-      transactionId: paymentIntent.id,
-      amountInRupees: priced.totalAmount,
-      productInfo: `ADHYANTHA order ${receipt}`,
-      firstName: firstName.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-    });
-    await prisma.paymentIntent.update({
-      where: { id: paymentIntent.id },
-      data: { gatewayOrderId: paymentIntent.id },
-    });
+    const payuCheckout = createPayUCheckoutForIntent(payuConfig, {
+      id: paymentIntent.id,
+      amount: priced.totalAmount,
+      guestName: firstName.trim(),
+      guestEmail: email.trim(),
+      guestPhone: phone.trim(),
+    }, transactionId);
 
     return NextResponse.json({
       paymentIntentId: paymentIntent.id,
-      orderNumber: receipt,
       paymentMethod: input.paymentMethod,
       totalAmount: priced.totalAmount,
       payuCheckout,

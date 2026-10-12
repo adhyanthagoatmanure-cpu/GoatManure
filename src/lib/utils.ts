@@ -58,6 +58,10 @@ export function normalizeProductImages(images: unknown): string[] {
   return images.filter((image): image is string => typeof image === "string" && image.trim().length > 0);
 }
 
+export function mergeProductImageUrls(existing: string[], uploaded: string[]): string[] {
+  return [...existing, ...uploaded];
+}
+
 export function generateToken(): string {
   return crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
 }

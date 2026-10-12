@@ -9,11 +9,11 @@ separate admin console for products, orders, coupons, customers, blog, and testi
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Framework | Next.js 15.5.26 (App Router), React 19, TypeScript |
 | Styling | Tailwind CSS v4, self-hosted fonts (Fraunces + Karla via `@fontsource`) |
 | Database | MySQL |
 | ORM | Prisma 6.12.0 |
-| Auth | NextAuth v4 (Credentials + Google + Facebook), bcrypt password hashing |
+| Auth | Auth.js / NextAuth v5 beta (Credentials + Google + Facebook + WhatsApp OTP), bcrypt password hashing |
 | Validation | Zod (shared between client forms and API routes) |
 | Payments | PayU India Hosted Checkout with server-side SHA-512 verification |
 | Forms | react-hook-form + @hookform/resolvers |
@@ -23,7 +23,7 @@ separate admin console for products, orders, coupons, customers, blog, and testi
 - Full storefront: home, products, product details, cart, checkout, order success,
   order tracking, benefits, testimonials, blog, contact
 - Guest checkout **and** account checkout
-- Email/password signup, login, forgot/reset password
+- Email/password login and forgot/reset password
 - Cash on Delivery — the entire order flow end-to-end, including stock-safe order
   creation and coupon validation
 - The `ADYA50` flat-₹50 coupon (and the coupon system generally — admin can create more)
@@ -88,6 +88,118 @@ When configured, every successful order sends a detailed email to
 to `WHATSAPP_ADMIN_PHONE_NUMBER`. The WhatsApp number must be in E.164 format.
 Order alerts use the approved `order_confirmation` and `new_order_admin` Utility
 templates (language code `en`); the Meta App must have these templates active.
+
+## WhatsApp OTP registration and login
+
+Customer phone registration and login use a separate WhatsApp Authentication
+template; the existing order Utility templates are never used for OTPs. Production
+OTP delivery stays unavailable until the following **server-side** GoDaddy PaaS
+settings are configured after the Authentication template has been approved:
+
+- `WHATSAPP_OTP_TEMPLATE_NAME` — exact approved template name.
+- `WHATSAPP_OTP_TEMPLATE_LANGUAGE` — exact approved language/locale code.
+- `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` — the existing Cloud API
+  token and sender phone-number ID.
+- `WHATSAPP_API_VERSION` — optional; defaults to `v22.0`.
+- `NEXTAUTH_SECRET` — also used to HMAC OTP codes, rate-limit identifiers, and
+  one-time Auth.js login tickets.
+
+The Authentication template must be active for the configured WhatsApp sender
+and support the OTP text body plus the OTP URL button at index `0`, as required
+by Meta's [authentication template send format](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/authentication-templates/authentication-templates/).
+The application cannot inspect or approve templates in Meta Business Manager.
+Do not set the two template variables until the template, sender, and
+`whatsapp_business_messaging` permission have been verified there. No credentials
+are sent to the browser.
+
+In development, the sender is a no-op mock: it makes no WhatsApp request and
+does not log or return an OTP. Automated tests inject a mocked Cloud API response.
+The development UI therefore cannot complete OTP registration or login without
+a test-only fixture that provides a verification code.
+
+The flow expires codes after five minutes, allows five verification attempts,
+applies persisted per-phone and per-IP rate limits, and enforces a 60-second
+resend cooldown. Codes and authentication tickets are stored only as keyed
+hashes. A verified registration creates the user; login uses the existing
+Auth.js Credentials/JWT session flow. Google and Facebook authentication remain
+unchanged.
+
+Apply the Prisma migration during deployment:
+
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
+
+Existing `users.phone` values are not modified or marked verified by this
+migration. A legacy customer can verify the unique phone value already on their
+account during their first OTP login. If multiple legacy accounts have the same
+phone, OTP login refuses the ambiguous match; review and resolve those records
+manually rather than merging accounts automatically. Updating a profile phone
+does not mark it verified.
+
+## Persistent image uploads (GoDaddy PaaS)
+
+Runtime uploads must not be written into the Git checkout or Next.js `public/`
+directory: those files are not guaranteed to survive a PaaS restart or a
+GitHub-based redeployment. Product, blog, and profile uploads use a private
+Cloudflare R2 bucket; the application streams them through same-origin
+`/api/storage/...` URLs, so the bucket does not need a public endpoint and its
+credentials never reach the browser.
+
+Create an R2 bucket and an API token restricted to that bucket with object
+read/write permissions. Set these **server-side** GoDaddy PaaS environment
+variables before deploying:
+
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME`
+
+Do not use `NEXT_PUBLIC_` names for these values. The current product records
+and their existing `/images/...` paths remain unchanged until a legacy image
+file has been recovered and migrated. No Prisma schema migration is required;
+new managed uploads are stored as stable `/api/storage/...` paths in the
+existing image fields.
+
+After restoring any available legacy upload files into their matching
+`public/images/{products,blog,profiles}/uploads/` folders, preview the
+reference migration:
+
+```bash
+npm run storage:migrate-legacy -- --dry-run
+```
+
+Apply only after reviewing the output and ensuring the original files are
+present:
+
+```bash
+npm run storage:migrate-legacy -- --apply
+```
+
+Missing source files are reported and their database references are retained;
+the migration does not delete source files or substitute images.
+
+Orphan cleanup is dry-run by default and prints candidate object keys without
+deleting:
+
+```bash
+npm run storage:cleanup
+```
+
+Review that report before explicitly deleting confirmed candidates:
+
+```bash
+npm run storage:cleanup -- --delete
+```
+
+To clean up abandoned uploads automatically, configure a GoDaddy PaaS scheduled
+task to run `npm run storage:cleanup -- --delete` periodically, using the same
+server environment variables and database configuration as the app. The
+repository does not contain a verified GoDaddy scheduler configuration, so
+schedule availability and setup must be confirmed in the PaaS dashboard. Do not
+run deletion mode against production until its dry-run candidate list has been
+reviewed.
 WhatsApp delivery failures are logged and do not invalidate the order.
 
 ## WhatsApp Cloud API webhook

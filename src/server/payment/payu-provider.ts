@@ -19,6 +19,53 @@ export type PayUCheckoutInput = {
   phone: string;
 };
 
+export type PayUPaymentIntentDetails = {
+  id: string;
+  amount: number;
+  guestName: string | null;
+  guestEmail: string | null;
+  guestPhone: string | null;
+};
+
+export type PayUResponseOutcome = "success" | "failed" | "pending" | "unknown";
+
+export function getPayUResponseOutcome(status: string | undefined): PayUResponseOutcome {
+  switch (status?.trim().toLowerCase()) {
+    case "success":
+      return "success";
+    case "failure":
+    case "failed":
+    case "cancelled":
+    case "canceled":
+      return "failed";
+    case "pending":
+      return "pending";
+    default:
+      return "unknown";
+  }
+}
+
+export function getPayUCallbackAction(
+  intentStatus: string,
+  outcome: PayUResponseOutcome
+): "paid" | "processing" | "confirm" | "fail" | "status" {
+  if (intentStatus === "PAID") return "paid";
+  if (intentStatus === "PROCESSING") return "processing";
+  if (outcome === "success" && (intentStatus === "PENDING" || intentStatus === "FAILED")) {
+    return "confirm";
+  }
+  if (outcome === "failed" && intentStatus === "PENDING") return "fail";
+  return "status";
+}
+
+export function canRetryPayUPayment(
+  status: string,
+  expiresAt: Date,
+  now = new Date()
+): boolean {
+  return status === "FAILED" && expiresAt > now;
+}
+
 export function getPayUConfig(): PayUConfig | null {
   const key = process.env.PAYU_MERCHANT_KEY?.trim();
   const salt = process.env.PAYU_MERCHANT_SALT?.trim();
@@ -154,6 +201,24 @@ export function createPayUCheckout(config: PayUConfig, input: PayUCheckoutInput)
     actionUrl: config.actionUrl,
     fields: { ...values, hash: sha512(hashInput) },
   };
+}
+
+export function createPayUCheckoutForIntent(
+  config: PayUConfig,
+  intent: PayUPaymentIntentDetails,
+  transactionId: string
+) {
+  if (!intent.guestName || !intent.guestEmail || !intent.guestPhone) {
+    throw new Error("Payment intent is missing required customer details");
+  }
+  return createPayUCheckout(config, {
+    transactionId,
+    amountInRupees: intent.amount,
+    productInfo: `ADHYANTHA payment ${intent.id}`,
+    firstName: intent.guestName,
+    email: intent.guestEmail,
+    phone: intent.guestPhone,
+  });
 }
 
 export function verifyPayUResponseHash(

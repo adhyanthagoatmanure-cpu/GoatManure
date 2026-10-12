@@ -13,31 +13,35 @@ datasource db {
 // ───────────────────────────── Auth (NextAuth-compatible) ─────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  phone         String?
-  passwordHash  String? // null for social-only accounts
-  image         String?
-  designation   String?
-  bio           String?   @db.VarChar(500)
-  role          Role      @default(CUSTOMER)
-  status        UserStatus @default(ACTIVE)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String     @id @default(cuid())
+  name            String?
+  email           String     @unique
+  emailVerified   DateTime?
+  phone           String?
+  verifiedPhone   String?    @unique
+  phoneVerifiedAt DateTime?
+  passwordHash    String? // null for social-only accounts
+  image           String?
+  designation     String?
+  bio             String?    @db.VarChar(500)
+  role            Role       @default(CUSTOMER)
+  status          UserStatus @default(ACTIVE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
-  accounts        Account[]
-  sessions        Session[]
-  addresses       Address[]
-  orders          Order[]
-  cart            Cart?
-  wishlist        WishlistItem[]
-  reviews         Review[]
-  resetTokens     PasswordResetToken[]
-  couponUsages    CouponUsage[]
+  accounts      Account[]
+  sessions      Session[]
+  addresses     Address[]
+  orders        Order[]
+  cart          Cart?
+  wishlist      WishlistItem[]
+  reviews       Review[]
+  resetTokens   PasswordResetToken[]
+  couponUsages  CouponUsage[]
+  otpChallenges WhatsAppOtpChallenge[]
 
   @@index([role])
+  @@index([phone])
   @@map("users")
 }
 
@@ -117,14 +121,55 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+enum WhatsAppOtpPurpose {
+  REGISTER
+  LOGIN
+}
+
+model WhatsAppOtpChallenge {
+  id                       String             @id @default(uuid())
+  phone                    String             @db.VarChar(16)
+  purpose                  WhatsAppOtpPurpose
+  codeHash                 String?            @db.Char(64)
+  userId                   String?
+  registrationName         String?
+  registrationEmail        String?
+  registrationPasswordHash String?
+  attempts                 Int                @default(0)
+  resendAfter              DateTime
+  expiresAt                DateTime
+  verifiedAt               DateTime?
+  authTicketHash           String?            @unique @db.Char(64)
+  authTicketExpiresAt      DateTime?
+  consumedAt               DateTime?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([phone, purpose])
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("whatsapp_otp_challenges")
+}
+
+model WhatsAppOtpRateLimit {
+  bucketKey       String   @id @db.Char(64)
+  windowStartedAt DateTime
+  count           Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@map("whatsapp_otp_rate_limits")
+}
+
 // ───────────────────────────────── Catalog ─────────────────────────────────
 
 model Category {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  slug        String    @unique
+  slug        String   @unique
   description String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
   products Product[]
 
@@ -225,10 +270,10 @@ model Review {
 // cart for logged-in users so it survives across devices.
 
 model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique
-  updatedAt DateTime   @updatedAt
-  createdAt DateTime   @default(now())
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 
   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items CartItem[]
@@ -322,18 +367,18 @@ model Order {
   id          String @id @default(cuid())
   orderNumber String @unique
 
-  userId      String?
-  guestName   String?
-  guestEmail  String?
-  guestPhone  String?
+  userId     String?
+  guestName  String?
+  guestEmail String?
+  guestPhone String?
 
   addressId        String?
   shippingSnapshot Json // frozen copy of the address at order time
 
   subtotal       Int
-  discountAmount Int @default(0)
+  discountAmount Int     @default(0)
   couponId       String?
-  shippingFee    Int @default(0)
+  shippingFee    Int     @default(0)
   totalAmount    Int
 
   paymentMethod     PaymentMethod
@@ -444,18 +489,18 @@ model OrderStatusHistory {
 // Payment gateway transaction log — kept separate from Order so a single
 // order can be safely retried/reconciled without losing gateway history.
 model Payment {
-  id                String        @id @default(cuid())
-  orderId           String        @unique
-  provider          String        @default("razorpay")
-  amount            Int
-  status            PaymentStatus @default(PENDING)
-  gatewayOrderId    String?
-  gatewayPaymentId  String?
-  gatewaySignature  String?
-  failureReason     String?
-  rawResponse       Json?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id               String        @id @default(cuid())
+  orderId          String        @unique
+  provider         String        @default("razorpay")
+  amount           Int
+  status           PaymentStatus @default(PENDING)
+  gatewayOrderId   String?
+  gatewayPaymentId String?
+  gatewaySignature String?
+  failureReason    String?
+  rawResponse      Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -463,23 +508,23 @@ model Payment {
 }
 
 model PaymentIntent {
-  id              String        @id @default(cuid())
-  userId          String?
-  guestName       String?
-  guestEmail      String?
-  guestPhone      String?
-  addressId       String?
-  newAddress      Json?
-  items           Json
-  couponCode      String?
-  customerNote    String?
-  amount          Int
-  gatewayOrderId  String?       @unique
-  createdOrderId  String?       @unique
-  status          PaymentIntentStatus @default(PENDING)
-  expiresAt       DateTime
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id             String              @id @default(cuid())
+  userId         String?
+  guestName      String?
+  guestEmail     String?
+  guestPhone     String?
+  addressId      String?
+  newAddress     Json?
+  items          Json
+  couponCode     String?
+  customerNote   String?
+  amount         Int
+  gatewayOrderId String?             @unique
+  createdOrderId String?             @unique
+  status         PaymentIntentStatus @default(PENDING)
+  expiresAt      DateTime
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -504,35 +549,35 @@ model WishlistItem {
 // ───────────────────────────── Content (CMS) ───────────────────────────────
 
 model Testimonial {
-  id            String   @id @default(cuid())
-  customerName  String
-  location      String?
-  rating        Int      @default(5)
-  review        String   @db.Text
-  image         String?
-  isDemo        Boolean  @default(true) // demo/placeholder until the client supplies real reviews
-  isPublished   Boolean  @default(true)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  customerName String
+  location     String?
+  rating       Int      @default(5)
+  review       String   @db.Text
+  image        String?
+  isDemo       Boolean  @default(true) // demo/placeholder until the client supplies real reviews
+  isPublished  Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
 
   @@map("testimonials")
 }
 
 model BlogPost {
-  id             String     @id @default(cuid())
+  id             String        @id @default(cuid())
   title          String
-  slug           String     @unique
+  slug           String        @unique
   excerpt        String
-  content        String     @db.Text
+  content        String        @db.Text
   featuredImage  String?
   category       String?
-  author         String     @default("ADHYANTHA Team")
-  status         BlogStatus @default(DRAFT)
+  author         String        @default("ADHYANTHA Team")
+  status         BlogStatus    @default(DRAFT)
   seoTitle       String?
   seoDescription String?
   publishedAt    DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   comments       BlogComment[]
 
   @@index([status])
@@ -540,13 +585,13 @@ model BlogPost {
 }
 
 model BlogComment {
-  id        String   @id @default(cuid())
-  blogPostId String
-  authorName String
+  id          String   @id @default(cuid())
+  blogPostId  String
+  authorName  String
   authorEmail String
-  comment   String   @db.Text
-  isApproved Boolean @default(true)
-  createdAt DateTime @default(now())
+  comment     String   @db.Text
+  isApproved  Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
   blogPost BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
 

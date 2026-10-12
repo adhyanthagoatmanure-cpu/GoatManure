@@ -3,16 +3,15 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { indianMobileNumberSchema } from "@/lib/validations/phone";
 
-const phoneSchema = z.object({
-  phone: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
-});
+const phoneSchema = z.object({ phone: indianMobileNumberSchema });
 
 type PhoneInput = z.infer<typeof phoneSchema>;
 

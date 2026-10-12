@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import baseAuthConfig from "@/lib/auth.config";
 import { ADMIN_EMAIL } from "@/lib/admin-identity";
+import { consumeWhatsAppOtpLoginTicket } from "@/server/auth/whatsapp-otp";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const hasFacebook = Boolean(process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET);
@@ -41,6 +42,27 @@ const authConfig: NextAuthConfig = {
         if (!valid) return null;
 
         return { id: user.id, name: user.name, email: user.email, image: user.image, role: user.role, phone: user.phone };
+      },
+    }),
+    CredentialsProvider({
+      id: "phone-otp",
+      name: "WhatsApp OTP",
+      credentials: {
+        ticket: { label: "One-time sign-in ticket", type: "text" },
+      },
+      async authorize(credentials) {
+        const ticket = typeof credentials?.ticket === "string" ? credentials.ticket : "";
+        if (!ticket) return null;
+        const user = await consumeWhatsAppOtpLoginTicket(ticket);
+        if (!user || user.role !== "CUSTOMER" || user.status !== "ACTIVE") return null;
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          role: user.role,
+          phone: user.phone,
+        };
       },
     }),
     ...(hasGoogle

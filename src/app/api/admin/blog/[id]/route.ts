@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { blogPostSchema } from "@/lib/validations/admin";
 import { slugify } from "@/lib/utils";
+import { deleteManagedImagesIfUnreferenced } from "@/server/storage/image-references";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { ok } = await requireAdmin();
@@ -44,6 +45,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       publishedAt: data.status === "PUBLISHED" ? existing.publishedAt ?? new Date() : existing.publishedAt,
     },
   });
+  if (existing.featuredImage && existing.featuredImage !== post.featuredImage) {
+    try {
+      await deleteManagedImagesIfUnreferenced([existing.featuredImage]);
+    } catch {
+      console.error("[image-storage] Failed to clean up a replaced blog image");
+    }
+  }
   return NextResponse.json({ post });
 }
 
@@ -51,6 +59,17 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { ok } = await requireAdmin();
   if (!ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const existing = await prisma.blogPost.findUnique({
+    where: { id },
+    select: { featuredImage: true },
+  });
   await prisma.blogPost.delete({ where: { id } });
+  if (existing?.featuredImage) {
+    try {
+      await deleteManagedImagesIfUnreferenced([existing.featuredImage]);
+    } catch {
+      console.error("[image-storage] Failed to clean up images after blog deletion");
+    }
+  }
   return NextResponse.json({ ok: true });
 }

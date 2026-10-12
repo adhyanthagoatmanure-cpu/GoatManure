@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { productSchema, type ProductInput } from "@/lib/validations/admin";
-import { normalizeProductImages } from "@/lib/utils";
+import { mergeProductImageUrls, normalizeProductImages } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
@@ -63,32 +63,54 @@ export function ProductForm({
   async function onSubmit(values: ProductInput) {
     setServerError(null);
     let uploadedImages: string[] = [];
-    if (imageFiles.length > 0) {
-      const formData = new FormData();
-      imageFiles.forEach((file) => formData.append("files", file));
-      const uploadRes = await fetch("/api/admin/products/images", { method: "POST", body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) {
-        setServerError(uploadData.error ?? "Could not upload product images");
+    try {
+      if (imageFiles.length > 0) {
+        const formData = new FormData();
+        imageFiles.forEach((file) => formData.append("files", file));
+        const uploadRes = await fetch("/api/admin/products/images", { method: "POST", body: formData });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) {
+          setServerError(uploadData.error ?? "Could not upload product images");
+          return;
+        }
+        uploadedImages = Array.isArray(uploadData.urls)
+          ? uploadData.urls.filter((url: unknown): url is string => typeof url === "string")
+          : [];
+      }
+
+      const existingImages = imagesText.split("\n").map((s) => s.trim()).filter(Boolean);
+      const images = mergeProductImageUrls(existingImages, uploadedImages);
+      const res = await fetch(productId ? `/api/admin/products/${productId}` : "/api/admin/products", {
+        method: productId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...values, images }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        await releaseUploadedImages(uploadedImages);
+        setServerError(data.error ?? "Something went wrong");
         return;
       }
-      uploadedImages = uploadData.urls ?? [];
+      show(productId ? "Product updated" : "Product created");
+      router.push("/admin/products");
+      router.refresh();
+    } catch {
+      await releaseUploadedImages(uploadedImages);
+      setServerError("Could not save the product. Please try again.");
     }
+  }
 
-    const images = [...imagesText.split("\n").map((s) => s.trim()).filter(Boolean), ...uploadedImages];
-    const res = await fetch(productId ? `/api/admin/products/${productId}` : "/api/admin/products", {
-      method: productId ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...values, images }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setServerError(data.error ?? "Something went wrong");
-      return;
+  async function releaseUploadedImages(urls: string[]) {
+    if (urls.length === 0) return;
+    try {
+      await fetch("/api/admin/products/images", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls }),
+      });
+    } catch {
+      console.error("Could not request cleanup for uncommitted product images");
     }
-    show(productId ? "Product updated" : "Product created");
-    router.push("/admin/products");
-    router.refresh();
   }
 
   return (

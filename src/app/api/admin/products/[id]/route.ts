@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { productSchema } from "@/lib/validations/admin";
-import { slugify } from "@/lib/utils";
+import { normalizeProductImages, slugify } from "@/lib/utils";
+import { deleteManagedImagesIfUnreferenced } from "@/server/storage/image-references";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { ok } = await requireAdmin();
@@ -91,6 +92,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
   });
 
+  const removedImages = normalizeProductImages(existing.images).filter((image) => !data.images.includes(image));
+  if (removedImages.length > 0) {
+    try {
+      await deleteManagedImagesIfUnreferenced(removedImages);
+    } catch {
+      console.error("[image-storage] Failed to clean up replaced product images");
+    }
+  }
+
   const product = await prisma.product.findUnique({
     where: { id },
     include: { variants: { orderBy: { sortOrder: "asc" } }, benefits: true },
@@ -111,6 +121,16 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ ok: true, softDeleted: true });
   }
 
+  const images = normalizeProductImages(
+    (await prisma.product.findUnique({ where: { id }, select: { images: true } }))?.images,
+  );
   await prisma.product.delete({ where: { id } });
+  if (images.length > 0) {
+    try {
+      await deleteManagedImagesIfUnreferenced(images);
+    } catch {
+      console.error("[image-storage] Failed to clean up images after product deletion");
+    }
+  }
   return NextResponse.json({ ok: true });
 }

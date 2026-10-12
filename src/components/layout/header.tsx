@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { Search, ShoppingBag, User, Menu, X, ChevronDown, Package, Heart, MapPin, LogOut, LayoutDashboard } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { useCart } from "@/components/providers/cart-provider";
+import { useSignOut } from "@/hooks/use-sign-out";
 import { cn } from "@/lib/utils";
 import { MobileNav } from "./mobile-nav";
 
@@ -23,6 +24,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
+  const signOutAndNavigate = useSignOut("/");
   const { itemCount, isHydrated } = useCart();
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -131,7 +133,10 @@ export function Header() {
                       <AccountLink href="/admin" icon={LayoutDashboard} label="Go to Admin Panel" />
                     )}
                     <button
-                      onClick={() => signOut({ callbackUrl: "/" })}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        void signOutAndNavigate();
+                      }}
                       className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-[var(--color-error)] hover:bg-[var(--color-parchment-deep)]"
                     >
                       <LogOut className="h-4 w-4" /> Logout

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useSignOut } from "@/hooks/use-sign-out";
 import { User, Package, MapPin, Heart, KeyRound, LogOut, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ const LINKS = [
 
 export function AccountSidebar() {
   const pathname = usePathname();
+  const signOutAndNavigate = useSignOut("/");
   return (
     <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
       {LINKS.map((link) => {
@@ -35,7 +36,7 @@ export function AccountSidebar() {
         );
       })}
       <button
-        onClick={() => signOut({ callbackUrl: "/" })}
+        onClick={() => void signOutAndNavigate()}
         className="mt-2 flex shrink-0 items-center gap-2.5 rounded-[var(--radius-sm)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-error)] hover:bg-[var(--color-error-bg)]"
       >
         <LogOut className="h-4 w-4" /> Logout

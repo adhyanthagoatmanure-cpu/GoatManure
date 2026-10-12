@@ -1,21 +1,49 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getPayUConfig, verifyPayUResponseHash } from "@/server/payment/payu-provider";
+import {
+  getPayUCallbackAction,
+  getPayUConfig,
+  getPayUResponseOutcome,
+  verifyPayUResponseHash,
+} from "@/server/payment/payu-provider";
 import { createOrder } from "@/server/services/order.service";
 import { notifyOrder } from "@/server/services/order-notification.service";
 import { createAdminNotification } from "@/server/services/admin-notification.service";
 import type { AddressInput } from "@/lib/validations/checkout";
 import type { RawCartLine } from "@/server/services/pricing.service";
 
+function redirectToCheckout(baseUrl: string, result: "invalid") {
+  return NextResponse.redirect(new URL(`/checkout?payment=${result}`, baseUrl), 303);
+}
+
+function redirectToPaymentStatus(baseUrl: string, intentId: string) {
+  return NextResponse.redirect(new URL(`/payment-status/${encodeURIComponent(intentId)}`, baseUrl), 303);
+}
+
+function redirectToOrder(baseUrl: string, orderId: string) {
+  return NextResponse.redirect(new URL(`/order-success/${encodeURIComponent(orderId)}?clearCart=1`, baseUrl), 303);
+}
+
+export async function GET() {
+  const siteUrl = process.env.NEXTAUTH_URL?.trim();
+  if (!siteUrl) return new NextResponse("Payment response could not be processed.", { status: 503 });
+  try {
+    return redirectToCheckout(siteUrl, "invalid");
+  } catch {
+    return new NextResponse("Payment response could not be processed.", { status: 503 });
+  }
+}
+
 export async function POST(req: Request) {
   const config = getPayUConfig();
   if (!config) return new NextResponse("PayU callback is not configured.", { status: 503 });
+  const baseUrl = config.callbackUrl;
 
   let formData: FormData;
   try {
     formData = await req.formData();
   } catch {
-    return new NextResponse("Invalid PayU response.", { status: 400 });
+    return redirectToCheckout(baseUrl, "invalid");
   }
 
   const response: Record<string, string> = {};
@@ -25,64 +53,54 @@ export async function POST(req: Request) {
 
   if (response.key !== config.key || !response.txnid || !verifyPayUResponseHash(config, response)) {
     console.error("[PAYU] Callback signature verification failed");
-    return new NextResponse("PayU response verification failed.", { status: 400 });
+    return redirectToCheckout(baseUrl, "invalid");
   }
 
-  const intent = await prisma.paymentIntent.findUnique({ where: { id: response.txnid } });
-  if (!intent || intent.gatewayOrderId !== response.txnid) {
-    return new NextResponse("Payment intent not found.", { status: 404 });
+  const intent = await prisma.paymentIntent.findUnique({ where: { gatewayOrderId: response.txnid } });
+  if (!intent) {
+    console.error("[PAYU] Callback payment intent was not found");
+    return redirectToCheckout(baseUrl, "invalid");
   }
 
   const amount = Number(response.amount);
   if (!Number.isFinite(amount) || amount !== intent.amount) {
     console.error(`[PAYU] Callback amount mismatch for intent=${intent.id}`);
-    return new NextResponse("PayU payment amount did not match the order.", { status: 400 });
+    return redirectToCheckout(baseUrl, "invalid");
   }
 
-  const returnToCheckout = (result: string) =>
-    NextResponse.redirect(new URL(`/checkout?payment=${result}`, new URL(config.callbackUrl).origin), 303);
+  const outcome = getPayUResponseOutcome(response.status);
+  const action = getPayUCallbackAction(intent.status, outcome);
 
-  if (response.status?.toLowerCase() !== "success") {
-    if (response.status?.toLowerCase() === "failure" && intent.status === "PENDING") {
-      await prisma.paymentIntent.updateMany({
-        where: { id: intent.id, status: "PENDING" },
-        data: { status: "FAILED" },
-      });
-    }
-    return returnToCheckout(response.status?.toLowerCase() === "pending" ? "pending" : "failed");
+  if (action === "paid") {
+    return intent.createdOrderId
+      ? redirectToOrder(baseUrl, intent.createdOrderId)
+      : redirectToPaymentStatus(baseUrl, intent.id);
   }
-
-  if (intent.status === "PAID" && intent.createdOrderId) {
-    return NextResponse.redirect(
-      new URL(`/order-success/${intent.createdOrderId}?clearCart=1`, new URL(config.callbackUrl).origin),
-      303
-    );
+  if (action === "processing") return redirectToPaymentStatus(baseUrl, intent.id);
+  if (action === "fail") {
+    await prisma.paymentIntent.updateMany({
+      where: { id: intent.id, status: "PENDING" },
+      data: { status: "FAILED" },
+    });
+    return redirectToPaymentStatus(baseUrl, intent.id);
   }
-
-  if (intent.status === "PROCESSING") {
-    return returnToCheckout("pending");
-  }
-  if (intent.status !== "PENDING" && intent.status !== "FAILED") {
-    return returnToCheckout("failed");
-  }
+  if (action === "status") return redirectToPaymentStatus(baseUrl, intent.id);
 
   if (!response.mihpayid) {
-    return new NextResponse("PayU transaction reference is missing.", { status: 400 });
+    console.error(`[PAYU] Successful callback missing transaction reference for intent=${intent.id}`);
+    return redirectToPaymentStatus(baseUrl, intent.id);
   }
 
   const claimed = await prisma.paymentIntent.updateMany({
-    where: { id: intent.id, status: { in: ["PENDING", "FAILED"] } },
+    where: { id: intent.id, status: { in: ["PENDING", "FAILED"] }, gatewayOrderId: response.txnid },
     data: { status: "PROCESSING" },
   });
   if (claimed.count === 0) {
     const latestIntent = await prisma.paymentIntent.findUnique({ where: { id: intent.id } });
     if (latestIntent?.status === "PAID" && latestIntent.createdOrderId) {
-      return NextResponse.redirect(
-        new URL(`/order-success/${latestIntent.createdOrderId}?clearCart=1`, new URL(config.callbackUrl).origin),
-        303
-      );
+      return redirectToOrder(baseUrl, latestIntent.createdOrderId);
     }
-    return returnToCheckout("pending");
+    return redirectToPaymentStatus(baseUrl, intent.id);
   }
 
   let result: Awaited<ReturnType<typeof createOrder>>;
@@ -106,12 +124,12 @@ export async function POST(req: Request) {
       data: { status: "PENDING" },
     });
     console.error(`[PAYU] Order creation failed for intent=${intent.id}`, error);
-    return new NextResponse("The order could not be created. Please try the payment again.", { status: 500 });
+    return redirectToPaymentStatus(baseUrl, intent.id);
   }
 
   if (!result.ok) {
     console.error(`[PAYU] Payment succeeded but order creation failed for intent=${intent.id}: ${result.reason}`);
-    return new NextResponse("Payment was received, but the order needs support review.", { status: 409 });
+    return redirectToPaymentStatus(baseUrl, intent.id);
   }
 
   const orderId = result.order.id;
@@ -163,8 +181,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.redirect(
-    new URL(`/order-success/${orderId}?clearCart=1`, new URL(config.callbackUrl).origin),
-    303
-  );
+  return redirectToOrder(baseUrl, orderId);
 }

@@ -195,6 +195,34 @@ export function imageStorageFailureDetails(error: unknown): {
   };
 }
 
+export function imageStorageFailureMessage(details: ReturnType<typeof imageStorageFailureDetails>): {
+  code: string;
+  message: string;
+} {
+  switch (details.category) {
+    case "configuration_missing":
+      return {
+        code: "IMAGE_STORAGE_NOT_CONFIGURED",
+        message: `Product image storage is not configured. Set the missing server-side R2 settings: ${details.missingConfig?.join(", ") ?? "R2 configuration"}.`,
+      };
+    case "provider_authorization":
+      return {
+        code: "IMAGE_STORAGE_ACCESS_DENIED",
+        message: "Cloud image storage rejected the upload. Check the R2 credentials and bucket write permissions.",
+      };
+    case "bucket_or_object_not_found":
+      return {
+        code: "IMAGE_STORAGE_BUCKET_NOT_FOUND",
+        message: "The configured image storage bucket was not found. Check the R2 account and bucket settings.",
+      };
+    default:
+      return {
+        code: "IMAGE_STORAGE_UNAVAILABLE",
+        message: "Could not store product images. Check the image storage service and retry.",
+      };
+  }
+}
+
 let s3Client: S3Client | undefined;
 
 function getS3Client() {

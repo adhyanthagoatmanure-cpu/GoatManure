@@ -7,6 +7,7 @@ import {
   imageExtensionForMime,
   imageMimeFromBytes,
   imageStorageFailureDetails,
+  imageStorageFailureMessage,
   managedImageKey,
   storeImage,
 } from "@/server/storage/image-storage";
@@ -70,8 +71,10 @@ export async function POST(req: Request) {
     } catch {
       console.error("[image-storage] Failed to clean up a partially completed product upload");
     }
-    console.error("[image-storage] Product image upload failed", imageStorageFailureDetails(error));
-    return NextResponse.json({ error: "Could not store product images" }, { status: 503 });
+    const details = imageStorageFailureDetails(error);
+    console.error("[image-storage] Product image upload failed", details);
+    const failure = imageStorageFailureMessage(details);
+    return NextResponse.json(failure, { status: 503 });
   }
 
   return NextResponse.json({ urls }, { status: 201 });

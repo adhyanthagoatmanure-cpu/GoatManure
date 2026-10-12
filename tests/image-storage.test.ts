@@ -6,6 +6,7 @@ import {
   imageExtensionForMime,
   imageMimeFromBytes,
   imageStorageFailureDetails,
+  imageStorageFailureMessage,
   imageUrlForKey,
   managedImageKey,
   storeImage,
@@ -63,15 +64,17 @@ test("rejects MIME/signature mismatches and unsupported extensions", async () =>
 });
 
 test("reports safe storage failure diagnostics without exposing provider error content", () => {
-  assert.deepEqual(
-    imageStorageFailureDetails(
-      new Error("Image storage is not configured: missing R2_ACCESS_KEY_ID, R2_BUCKET_NAME"),
-    ),
-    {
-      category: "configuration_missing",
-      missingConfig: ["R2_ACCESS_KEY_ID", "R2_BUCKET_NAME"],
-    },
+  const missingConfig = imageStorageFailureDetails(
+    new Error("Image storage is not configured: missing R2_ACCESS_KEY_ID, R2_BUCKET_NAME"),
   );
+  assert.deepEqual(missingConfig, {
+    category: "configuration_missing",
+    missingConfig: ["R2_ACCESS_KEY_ID", "R2_BUCKET_NAME"],
+  });
+  assert.deepEqual(imageStorageFailureMessage(missingConfig), {
+    code: "IMAGE_STORAGE_NOT_CONFIGURED",
+    message: "Product image storage is not configured. Set the missing server-side R2 settings: R2_ACCESS_KEY_ID, R2_BUCKET_NAME.",
+  });
   assert.deepEqual(
     imageStorageFailureDetails({
       name: "AccessDenied",
@@ -81,8 +84,11 @@ test("reports safe storage failure diagnostics without exposing provider error c
     { category: "provider_authorization", status: 403, providerCode: "AccessDenied" },
   );
   assert.deepEqual(
-    imageStorageFailureDetails(new Error("sensitive provider response")),
-    { category: "unknown_storage_failure" },
+    imageStorageFailureMessage(imageStorageFailureDetails(new Error("sensitive provider response"))),
+    {
+      code: "IMAGE_STORAGE_UNAVAILABLE",
+      message: "Could not store product images. Check the image storage service and retry.",
+    },
   );
 });
 

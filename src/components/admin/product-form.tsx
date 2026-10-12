@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Upload, X } from "lucide-react";
+import { Package, Plus, Trash2, Upload, X } from "lucide-react";
 import { productSchema, type ProductInput } from "@/lib/validations/admin";
 import { mergeProductImageUrls, normalizeProductImages } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ export function ProductForm({
   const { show } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   const {
     register,
@@ -51,6 +52,7 @@ export function ProductForm({
   const benefitArray = useFieldArray({ control, name: "benefits" });
   const defaultImageList = normalizeProductImages(defaultValues?.images);
   const [imagesText, setImagesText] = useState(defaultImageList.join("\n"));
+  const [unavailableImages, setUnavailableImages] = useState<Set<string>>(() => new Set());
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
@@ -62,20 +64,37 @@ export function ProductForm({
 
   async function onSubmit(values: ProductInput) {
     setServerError(null);
+    setImageUploadError(null);
     let uploadedImages: string[] = [];
     try {
       if (imageFiles.length > 0) {
         const formData = new FormData();
         imageFiles.forEach((file) => formData.append("files", file));
-        const uploadRes = await fetch("/api/admin/products/images", { method: "POST", body: formData });
-        const uploadData = await uploadRes.json();
+        let uploadRes: Response;
+        let uploadData: { error?: string; urls?: unknown };
+        try {
+          uploadRes = await fetch("/api/admin/products/images", { method: "POST", body: formData });
+          uploadData = await uploadRes.json();
+        } catch {
+          setImageUploadError("Could not upload product images. Existing images are unchanged; please try again.");
+          return;
+        }
         if (!uploadRes.ok) {
-          setServerError(uploadData.error ?? "Could not upload product images");
+          setImageUploadError(uploadData.error ?? "Could not upload product images");
           return;
         }
         uploadedImages = Array.isArray(uploadData.urls)
-          ? uploadData.urls.filter((url: unknown): url is string => typeof url === "string")
+          ? uploadData.urls.filter(
+              (url: unknown): url is string =>
+                typeof url === "string" &&
+                /^\/api\/storage\/products\/[0-9a-f-]{36}\.(?:jpg|png|webp|gif)$/i.test(url),
+            )
           : [];
+        if (uploadedImages.length !== imageFiles.length) {
+          await releaseUploadedImages(uploadedImages);
+          setImageUploadError("The image upload did not complete. Existing product images were not changed; please retry.");
+          return;
+        }
       }
 
       const existingImages = imagesText.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -114,33 +133,33 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-7 sm:gap-8">
       {serverError && (
-        <p className="rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">{serverError}</p>
+        <p role="alert" className="rounded-[var(--radius-sm)] border border-[var(--color-error)]/30 bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">{serverError}</p>
       )}
 
       <Section title="Basic Information">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Product Name" {...register("name")} error={errors.name?.message} />
-          <Input label="URL Slug (optional — auto-generated)" {...register("slug")} error={errors.slug?.message} />
-        </div>
-        <Input label="Short Description" className="mt-4" {...register("shortDescription")} error={errors.shortDescription?.message} />
-        <div className="mt-4">
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Input label="Product Name" {...register("name")} error={errors.name?.message} />
+            <Input label="URL Slug (optional — auto-generated)" {...register("slug")} error={errors.slug?.message} />
+          </div>
+          <Input label="Short Description" {...register("shortDescription")} error={errors.shortDescription?.message} />
           <Textarea label="Full Description" {...register("description")} error={errors.description?.message} />
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Select label="Category" {...register("categoryId")} defaultValue="">
-            <option value="">No category</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
-          <Input label="SKU (optional)" {...register("sku")} error={errors.sku?.message} />
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <Select label="Category" {...register("categoryId")} defaultValue="">
+              <option value="">No category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+            <Input label="SKU (optional)" {...register("sku")} error={errors.sku?.message} />
+          </div>
         </div>
       </Section>
 
       <Section title="Content">
-        <div className="grid gap-4">
+        <div className="flex flex-col gap-5">
           <Textarea label="How to Use" {...register("howToUse")} />
           <Textarea label="Shipping Information" {...register("shippingInfo")} />
         </div>
@@ -158,17 +177,36 @@ export function ProductForm({
             className="sr-only"
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
+              setImageUploadError(null);
               setImageFiles((current) => [...current, ...files]);
               setImagePreviews((current) => [...current, ...files.map((file) => URL.createObjectURL(file))]);
               e.target.value = "";
             }}
           />
         </label>
+        {imageUploadError && (
+          <p
+            role="alert"
+            aria-live="assertive"
+            className="mt-4 rounded-[var(--radius-sm)] border border-[var(--color-error)]/40 bg-[var(--color-error-bg)] px-3.5 py-3 text-sm font-medium text-[var(--color-error)]"
+          >
+            {imageUploadError}
+          </p>
+        )}
         {(defaultImageList.length > 0 || imagePreviews.length > 0) ? (
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {defaultImageList.map((image) => (
               <div key={image} className="relative aspect-square overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-white">
-                <img src={image} alt="Product" className="h-full w-full object-contain p-2" />
+                {unavailableImages.has(image) ? (
+                  <Package aria-label="Product image unavailable" className="absolute inset-0 m-auto h-8 w-8 text-[var(--color-stone)]" />
+                ) : (
+                  <img
+                    src={image}
+                    alt="Product"
+                    className="h-full w-full object-contain p-2"
+                    onError={() => setUnavailableImages((current) => new Set(current).add(image))}
+                  />
+                )}
               </div>
             ))}
             {imagePreviews.map((preview, index) => (
@@ -192,15 +230,17 @@ export function ProductForm({
             ))}
           </div>
         ) : null}
-        <Textarea
-          value={imagesText}
-          onChange={(e) => setImagesText(e.target.value)}
-          placeholder="Optional existing image paths, one per line"
-        />
+        <div className="mt-5">
+          <Textarea
+            value={imagesText}
+            onChange={(e) => setImagesText(e.target.value)}
+            placeholder="Optional existing image paths, one per line"
+          />
+        </div>
       </Section>
 
       <Section title="Benefits (shown on the product page)">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {benefitArray.fields.map((field, i) => (
             <div key={field.id} className="flex gap-2">
               <Input placeholder="e.g. 100% Organic" {...register(`benefits.${i}.title` as const)} />
@@ -219,7 +259,7 @@ export function ProductForm({
         <div className="flex flex-col gap-4">
           {variantArray.fields.map((field, i) => (
             <div key={field.id} className="rounded-[var(--radius-sm)] border border-[var(--color-border)] p-4">
-              <div className="grid gap-3 sm:grid-cols-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
                 <Input label="Label" placeholder="1 KG" {...register(`variants.${i}.weightLabel` as const)} />
                 <Input label="Weight" type="number" step="any" {...register(`variants.${i}.weightValue` as const, { valueAsNumber: true })} />
                 <Input label="Original ₹" type="number" {...register(`variants.${i}.originalPrice` as const, { valueAsNumber: true })} />
@@ -293,10 +333,10 @@ export function ProductForm({
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
+    <section className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
       <h3 className="font-display text-lg font-medium">{title}</h3>
-      {description && <p className="mt-0.5 text-xs text-[var(--color-stone)]">{description}</p>}
-      <div className="mt-4">{children}</div>
+      {description && <p className="mt-1 text-xs leading-5 text-[var(--color-stone)]">{description}</p>}
+      <div className="mt-5">{children}</div>
     </section>
   );
 }

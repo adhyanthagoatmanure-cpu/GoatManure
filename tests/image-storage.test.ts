@@ -5,6 +5,7 @@ import {
   deleteImagesIfUnreferenced,
   imageExtensionForMime,
   imageMimeFromBytes,
+  imageStorageFailureDetails,
   imageUrlForKey,
   managedImageKey,
   storeImage,
@@ -59,6 +60,43 @@ test("rejects MIME/signature mismatches and unsupported extensions", async () =>
   assert.equal(imageMimeFromBytes(jpegBytes), "image/jpeg");
   await assert.rejects(storeImage(new MemoryImageStore(), "products", jpegBytes, "image/png"));
   await assert.rejects(storeImage(new MemoryImageStore(), "products", pngBytes, "image/svg+xml"));
+});
+
+test("reports safe storage failure diagnostics without exposing provider error content", () => {
+  assert.deepEqual(
+    imageStorageFailureDetails(
+      new Error("Image storage is not configured: missing R2_ACCESS_KEY_ID, R2_BUCKET_NAME"),
+    ),
+    {
+      category: "configuration_missing",
+      missingConfig: ["R2_ACCESS_KEY_ID", "R2_BUCKET_NAME"],
+    },
+  );
+  assert.deepEqual(
+    imageStorageFailureDetails({
+      name: "AccessDenied",
+      message: "sensitive provider response",
+      $metadata: { httpStatusCode: 403, requestId: "private-request-id" },
+    }),
+    { category: "provider_authorization", status: 403, providerCode: "AccessDenied" },
+  );
+  assert.deepEqual(
+    imageStorageFailureDetails(new Error("sensitive provider response")),
+    { category: "unknown_storage_failure" },
+  );
+});
+
+test("a provider write failure rejects the upload without returning a broken image URL", async () => {
+  const store = new MemoryImageStore();
+  store.put = async () => {
+    throw Object.assign(new Error("sensitive provider response"), {
+      name: "AccessDenied",
+      $metadata: { httpStatusCode: 403 },
+    });
+  };
+
+  await assert.rejects(storeImage(store, "products", pngBytes, "image/png"));
+  assert.equal(store.objects.size, 0);
 });
 
 test("dry-run cleanup reports only unreferenced managed files and skips unknown keys", async () => {

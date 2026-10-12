@@ -9,6 +9,7 @@ import {
 import { randomUUID } from "node:crypto";
 
 export const IMAGE_LIMIT_BYTES = 5 * 1024 * 1024;
+export const PRODUCT_IMAGE_REQUEST_LIMIT_BYTES = 55 * 1024 * 1024;
 export const IMAGE_KINDS = ["products", "blogs", "profiles"] as const;
 export type ImageKind = (typeof IMAGE_KINDS)[number];
 
@@ -119,6 +120,78 @@ function getR2Config() {
     accessKeyId: R2_ACCESS_KEY_ID!,
     secretAccessKey: R2_SECRET_ACCESS_KEY!,
     bucketName: R2_BUCKET_NAME!,
+  };
+}
+
+export function imageStorageFailureDetails(error: unknown): {
+  category: string;
+  status?: number;
+  providerCode?: string;
+  missingConfig?: string[];
+} {
+  const message = error instanceof Error ? error.message : "";
+  const missingConfigMatch = message.match(
+    /^Image storage is not configured: missing ((?:R2_ACCOUNT_ID|R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|R2_BUCKET_NAME)(?:, (?:R2_ACCOUNT_ID|R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|R2_BUCKET_NAME))*)$/,
+  );
+  if (missingConfigMatch) {
+    return {
+      category: "configuration_missing",
+      missingConfig: missingConfigMatch[1].split(", "),
+    };
+  }
+
+  const metadata =
+    error && typeof error === "object" && "$metadata" in error
+      ? (error as { $metadata?: { httpStatusCode?: unknown } }).$metadata
+      : undefined;
+  const status =
+    typeof metadata?.httpStatusCode === "number" ? metadata.httpStatusCode : undefined;
+  const providerCode =
+    error && typeof error === "object" && "name" in error &&
+    typeof error.name === "string" &&
+    /^(AccessDenied|InvalidAccessKeyId|SignatureDoesNotMatch|NoSuchBucket|BucketNotFound|SlowDown|RequestTimeout|TimeoutError|NetworkingError)$/.test(error.name)
+      ? error.name
+      : undefined;
+
+  if (status === 401 || status === 403 || providerCode === "AccessDenied" || providerCode === "InvalidAccessKeyId" || providerCode === "SignatureDoesNotMatch") {
+    return {
+      category: "provider_authorization",
+      ...(status === undefined ? {} : { status }),
+      ...(providerCode ? { providerCode } : {}),
+    };
+  }
+  if (status === 404 || providerCode === "NoSuchBucket" || providerCode === "BucketNotFound") {
+    return {
+      category: "bucket_or_object_not_found",
+      ...(status === undefined ? {} : { status }),
+      ...(providerCode ? { providerCode } : {}),
+    };
+  }
+  if (status === 429 || providerCode === "SlowDown") {
+    return {
+      category: "provider_rate_limited",
+      ...(status === undefined ? {} : { status }),
+      ...(providerCode ? { providerCode } : {}),
+    };
+  }
+  if (status && status >= 500) {
+    return {
+      category: "provider_server_error",
+      status,
+      ...(providerCode ? { providerCode } : {}),
+    };
+  }
+  if (providerCode === "TimeoutError" || providerCode === "RequestTimeout" || providerCode === "NetworkingError") {
+    return {
+      category: "network_or_timeout",
+      ...(status === undefined ? {} : { status }),
+      providerCode,
+    };
+  }
+  return {
+    category: "unknown_storage_failure",
+    ...(status === undefined ? {} : { status }),
+    ...(providerCode ? { providerCode } : {}),
   };
 }
 

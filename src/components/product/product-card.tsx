@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingBag, Zap } from "lucide-react";
+import { Package, ShoppingBag, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { DiscountBadge } from "@/components/ui/badge";
 import { Rating } from "@/components/ui/rating";
 import { useCart } from "@/components/providers/cart-provider";
@@ -19,6 +20,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
   const variant = product.variants.find((v) => v.isDefault) ?? product.variants[0];
   const outOfStock = !variant || variant.stock <= 0;
   const image = normalizeProductImages(product.images)[0] ?? null;
+  const [imageUnavailable, setImageUnavailable] = useState(false);
 
   function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -50,7 +52,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
             Out of Stock
           </div>
         )}
-        {image ? (
+        {image && !imageUnavailable ? (
           <Image
             src={image}
             alt={product.name}
@@ -58,9 +60,12 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
             priority={index < 4}
+            onError={() => setImageUnavailable(true)}
           />
         ) : (
-          <div className="h-full w-full rounded-[var(--radius-sm)] bg-[var(--color-border)]" />
+          <div role="img" aria-label={`${product.name} image unavailable`} className="absolute inset-0 flex items-center justify-center text-[var(--color-stone)]">
+            <Package className="h-10 w-10" />
+          </div>
         )}
       </div>
 

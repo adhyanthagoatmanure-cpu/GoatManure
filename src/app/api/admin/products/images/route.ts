@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
+import { createDatabaseImageStore } from "@/server/storage/database-image-store";
 import {
   IMAGE_LIMIT_BYTES,
   PRODUCT_IMAGE_REQUEST_LIMIT_BYTES,
-  createR2ImageStore,
   imageExtensionForMime,
   imageMimeFromBytes,
   imageStorageFailureDetails,
@@ -57,10 +57,10 @@ export async function POST(req: Request) {
     payloads.push({ bytes, contentType: file.type });
   }
 
-  let store: ReturnType<typeof createR2ImageStore> | undefined;
+  let store: ReturnType<typeof createDatabaseImageStore> | undefined;
   const urls: string[] = [];
   try {
-    store = createR2ImageStore();
+    store = createDatabaseImageStore();
     for (const payload of payloads) {
       const image = await storeImage(store, "products", payload.bytes, payload.contentType);
       urls.push(image.url);

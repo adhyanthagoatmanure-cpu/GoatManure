@@ -205,6 +205,16 @@ model Product {
   @@map("products")
 }
 
+model StoredImage {
+  key         String   @id @db.VarChar(255)
+  body        Bytes    @db.LongBlob
+  contentType String   @db.VarChar(100)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("stored_images")
+}
+
 enum ProductStatus {
   ACTIVE
   INACTIVE

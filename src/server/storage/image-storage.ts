@@ -1,11 +1,3 @@
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 
 export const IMAGE_LIMIT_BYTES = 5 * 1024 * 1024;
@@ -102,96 +94,20 @@ export function imageUrlForKey(key: string): string | null {
   return `/api/storage/${match[1]}/${match[2]}`;
 }
 
-function getR2Config() {
-  const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME } = process.env;
-  const missing = [
-    ["R2_ACCOUNT_ID", R2_ACCOUNT_ID],
-    ["R2_ACCESS_KEY_ID", R2_ACCESS_KEY_ID],
-    ["R2_SECRET_ACCESS_KEY", R2_SECRET_ACCESS_KEY],
-    ["R2_BUCKET_NAME", R2_BUCKET_NAME],
-  ]
-    .filter(([, value]) => !value)
-    .map(([name]) => name);
-  if (missing.length > 0) {
-    throw new Error(`Image storage is not configured: missing ${missing.join(", ")}`);
-  }
-  return {
-    accountId: R2_ACCOUNT_ID!,
-    accessKeyId: R2_ACCESS_KEY_ID!,
-    secretAccessKey: R2_SECRET_ACCESS_KEY!,
-    bucketName: R2_BUCKET_NAME!,
-  };
-}
-
 export function imageStorageFailureDetails(error: unknown): {
   category: string;
-  status?: number;
-  providerCode?: string;
-  missingConfig?: string[];
+  databaseCode?: string;
 } {
-  const message = error instanceof Error ? error.message : "";
-  const missingConfigMatch = message.match(
-    /^Image storage is not configured: missing ((?:R2_ACCOUNT_ID|R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|R2_BUCKET_NAME)(?:, (?:R2_ACCOUNT_ID|R2_ACCESS_KEY_ID|R2_SECRET_ACCESS_KEY|R2_BUCKET_NAME))*)$/,
-  );
-  if (missingConfigMatch) {
-    return {
-      category: "configuration_missing",
-      missingConfig: missingConfigMatch[1].split(", "),
-    };
-  }
-
-  const metadata =
-    error && typeof error === "object" && "$metadata" in error
-      ? (error as { $metadata?: { httpStatusCode?: unknown } }).$metadata
+  const databaseCode =
+    error && typeof error === "object" && "code" in error &&
+    typeof error.code === "string" && /^P\d{4}$/.test(error.code)
+      ? error.code
       : undefined;
-  const status =
-    typeof metadata?.httpStatusCode === "number" ? metadata.httpStatusCode : undefined;
-  const providerCode =
-    error && typeof error === "object" && "name" in error &&
-    typeof error.name === "string" &&
-    /^(AccessDenied|InvalidAccessKeyId|SignatureDoesNotMatch|NoSuchBucket|BucketNotFound|SlowDown|RequestTimeout|TimeoutError|NetworkingError)$/.test(error.name)
-      ? error.name
-      : undefined;
-
-  if (status === 401 || status === 403 || providerCode === "AccessDenied" || providerCode === "InvalidAccessKeyId" || providerCode === "SignatureDoesNotMatch") {
-    return {
-      category: "provider_authorization",
-      ...(status === undefined ? {} : { status }),
-      ...(providerCode ? { providerCode } : {}),
-    };
-  }
-  if (status === 404 || providerCode === "NoSuchBucket" || providerCode === "BucketNotFound") {
-    return {
-      category: "bucket_or_object_not_found",
-      ...(status === undefined ? {} : { status }),
-      ...(providerCode ? { providerCode } : {}),
-    };
-  }
-  if (status === 429 || providerCode === "SlowDown") {
-    return {
-      category: "provider_rate_limited",
-      ...(status === undefined ? {} : { status }),
-      ...(providerCode ? { providerCode } : {}),
-    };
-  }
-  if (status && status >= 500) {
-    return {
-      category: "provider_server_error",
-      status,
-      ...(providerCode ? { providerCode } : {}),
-    };
-  }
-  if (providerCode === "TimeoutError" || providerCode === "RequestTimeout" || providerCode === "NetworkingError") {
-    return {
-      category: "network_or_timeout",
-      ...(status === undefined ? {} : { status }),
-      providerCode,
-    };
-  }
   return {
-    category: "unknown_storage_failure",
-    ...(status === undefined ? {} : { status }),
-    ...(providerCode ? { providerCode } : {}),
+    category: databaseCode === "P2021" || databaseCode === "P2022"
+      ? "database_schema_missing"
+      : "database_storage_failure",
+    ...(databaseCode ? { databaseCode } : {}),
   };
 }
 
@@ -200,118 +116,17 @@ export function imageStorageFailureMessage(details: ReturnType<typeof imageStora
   message: string;
 } {
   switch (details.category) {
-    case "configuration_missing":
+    case "database_schema_missing":
       return {
-        code: "IMAGE_STORAGE_NOT_CONFIGURED",
-        message: `Product image storage is not configured. Set the missing server-side R2 settings: ${details.missingConfig?.join(", ") ?? "R2 configuration"}.`,
-      };
-    case "provider_authorization":
-      return {
-        code: "IMAGE_STORAGE_ACCESS_DENIED",
-        message: "Cloud image storage rejected the upload. Check the R2 credentials and bucket write permissions.",
-      };
-    case "bucket_or_object_not_found":
-      return {
-        code: "IMAGE_STORAGE_BUCKET_NOT_FOUND",
-        message: "The configured image storage bucket was not found. Check the R2 account and bucket settings.",
+        code: "IMAGE_STORAGE_TABLE_MISSING",
+        message: "Image storage is not set up in MySQL yet. Apply the latest Prisma database migration, then retry.",
       };
     default:
       return {
-        code: "IMAGE_STORAGE_UNAVAILABLE",
-        message: "Could not store product images. Check the image storage service and retry.",
+        code: "IMAGE_DATABASE_UNAVAILABLE",
+        message: "Could not save the image in the GoDaddy MySQL database. Check the database connection and retry.",
       };
   }
-}
-
-let s3Client: S3Client | undefined;
-
-function getS3Client() {
-  if (!s3Client) {
-    const config = getR2Config();
-    s3Client = new S3Client({
-      region: "auto",
-      endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-      },
-    });
-  }
-  return s3Client;
-}
-
-function bucketName() {
-  return getR2Config().bucketName;
-}
-
-export function createR2ImageStore(): ImageObjectStore {
-  return {
-    async put(key, body, contentType) {
-      await getS3Client().send(
-        new PutObjectCommand({ Bucket: bucketName(), Key: key, Body: body, ContentType: contentType }),
-      );
-    },
-    async get(key) {
-      try {
-        const result = await getS3Client().send(
-          new GetObjectCommand({ Bucket: bucketName(), Key: key }),
-        );
-        if (!result.Body) return null;
-        return {
-          body: await result.Body.transformToByteArray(),
-          contentType: result.ContentType,
-        };
-      } catch (error) {
-        if (
-          error &&
-          typeof error === "object" &&
-          "$metadata" in error &&
-          (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404
-        ) {
-          return null;
-        }
-        throw error;
-      }
-    },
-    async head(key) {
-      try {
-        const result = await getS3Client().send(
-          new HeadObjectCommand({ Bucket: bucketName(), Key: key }),
-        );
-        return result.ContentType ?? null;
-      } catch (error) {
-        if (
-          error &&
-          typeof error === "object" &&
-          "$metadata" in error &&
-          (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404
-        ) {
-          return null;
-        }
-        throw error;
-      }
-    },
-    async delete(key) {
-      await getS3Client().send(
-        new DeleteObjectCommand({ Bucket: bucketName(), Key: key }),
-      );
-    },
-    async list(prefix, continuationToken) {
-      const result = await getS3Client().send(
-        new ListObjectsV2Command({
-          Bucket: bucketName(),
-          Prefix: prefix,
-          ContinuationToken: continuationToken,
-        }),
-      );
-      return {
-        objects: (result.Contents ?? []).flatMap((object) =>
-          object.Key ? [{ key: object.Key, contentType: undefined }] : [],
-        ),
-        continuationToken: result.IsTruncated ? result.NextContinuationToken : undefined,
-      };
-    },
-  };
 }
 
 export async function storeImage(

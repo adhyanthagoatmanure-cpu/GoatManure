@@ -1,7 +1,7 @@
 import { normalizeProductImages } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { createDatabaseImageStore } from "@/server/storage/database-image-store";
 import {
-  createR2ImageStore,
   cleanupUnusedImages,
   deleteImagesIfUnreferenced,
   type ImageObjectStore,
@@ -34,12 +34,12 @@ export async function getAllImageReferences(): Promise<string[]> {
 
 export async function cleanupManagedImages(dryRun: boolean) {
   const references = await getAllImageReferences();
-  return cleanupUnusedImages(createR2ImageStore(), references, dryRun);
+  return cleanupUnusedImages(createDatabaseImageStore(), references, dryRun);
 }
 
 export async function deleteManagedImagesIfUnreferenced(
   urls: string[],
-  store: ImageObjectStore = createR2ImageStore(),
+  store: ImageObjectStore = createDatabaseImageStore(),
 ) {
   const references = await getAllImageReferences();
   return deleteImagesIfUnreferenced(store, urls, references);

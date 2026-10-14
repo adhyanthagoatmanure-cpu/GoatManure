@@ -71,7 +71,7 @@ export function ProductForm({
         const formData = new FormData();
         imageFiles.forEach((file) => formData.append("files", file));
         let uploadRes: Response;
-        let uploadData: { error?: string; urls?: unknown };
+        let uploadData: { error?: string; message?: string; urls?: unknown };
         try {
           uploadRes = await fetch("/api/admin/products/images", { method: "POST", body: formData });
           uploadData = await uploadRes.json();
@@ -80,7 +80,7 @@ export function ProductForm({
           return;
         }
         if (!uploadRes.ok) {
-          setImageUploadError(uploadData.error ?? "Could not upload product images");
+          setImageUploadError(uploadData.message ?? uploadData.error ?? "Could not upload product images");
           return;
         }
         uploadedImages = Array.isArray(uploadData.urls)

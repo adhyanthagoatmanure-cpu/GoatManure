@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
+import { createDatabaseImageStore } from "@/server/storage/database-image-store";
 import {
   IMAGE_LIMIT_BYTES,
-  createR2ImageStore,
   imageExtensionForMime,
   imageMimeFromBytes,
   managedImageKey,
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const image = await storeImage(createR2ImageStore(), "blogs", bytes, file.type);
+    const image = await storeImage(createDatabaseImageStore(), "blogs", bytes, file.type);
     return NextResponse.json({ url: image.url }, { status: 201 });
   } catch {
     console.error("[image-storage] Blog image upload failed");

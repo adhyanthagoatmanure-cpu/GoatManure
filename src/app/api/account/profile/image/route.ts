@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createDatabaseImageStore } from "@/server/storage/database-image-store";
 import {
-  createR2ImageStore,
   imageExtensionForMime,
   imageMimeFromBytes,
   storeImage,
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
   let uploadedUrl: string | undefined;
   try {
-    const stored = await storeImage(createR2ImageStore(), "profiles", bytes, file.type);
+    const stored = await storeImage(createDatabaseImageStore(), "profiles", bytes, file.type);
     uploadedUrl = stored.url;
     await prisma.user.update({ where: { id: session.user.id }, data: { image: stored.url } });
   } catch {

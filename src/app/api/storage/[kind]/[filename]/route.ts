@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createR2ImageStore, managedImageKey } from "@/server/storage/image-storage";
+import { createDatabaseImageStore } from "@/server/storage/database-image-store";
+import { managedImageKey } from "@/server/storage/image-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function GET(
   if (!key) return new NextResponse(null, { status: 404 });
 
   try {
-    const image = await createR2ImageStore().get(key);
+    const image = await createDatabaseImageStore().get(key);
     if (!image) return new NextResponse(null, { status: 404 });
 
     const extension = filename.split(".").pop()?.toLowerCase() ?? "";

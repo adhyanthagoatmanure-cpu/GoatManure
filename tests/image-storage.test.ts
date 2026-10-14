@@ -63,42 +63,26 @@ test("rejects MIME/signature mismatches and unsupported extensions", async () =>
   await assert.rejects(storeImage(new MemoryImageStore(), "products", pngBytes, "image/svg+xml"));
 });
 
-test("reports safe storage failure diagnostics without exposing provider error content", () => {
-  const missingConfig = imageStorageFailureDetails(
-    new Error("Image storage is not configured: missing R2_ACCESS_KEY_ID, R2_BUCKET_NAME"),
-  );
-  assert.deepEqual(missingConfig, {
-    category: "configuration_missing",
-    missingConfig: ["R2_ACCESS_KEY_ID", "R2_BUCKET_NAME"],
-  });
-  assert.deepEqual(imageStorageFailureMessage(missingConfig), {
-    code: "IMAGE_STORAGE_NOT_CONFIGURED",
-    message: "Product image storage is not configured. Set the missing server-side R2 settings: R2_ACCESS_KEY_ID, R2_BUCKET_NAME.",
+test("reports safe MySQL storage diagnostics without exposing database error content", () => {
+  const missingTable = imageStorageFailureDetails({ code: "P2021", message: "private database details" });
+  assert.deepEqual(missingTable, { category: "database_schema_missing", databaseCode: "P2021" });
+  assert.deepEqual(imageStorageFailureMessage(missingTable), {
+    code: "IMAGE_STORAGE_TABLE_MISSING",
+    message: "Image storage is not set up in MySQL yet. Apply the latest Prisma database migration, then retry.",
   });
   assert.deepEqual(
-    imageStorageFailureDetails({
-      name: "AccessDenied",
-      message: "sensitive provider response",
-      $metadata: { httpStatusCode: 403, requestId: "private-request-id" },
-    }),
-    { category: "provider_authorization", status: 403, providerCode: "AccessDenied" },
-  );
-  assert.deepEqual(
-    imageStorageFailureMessage(imageStorageFailureDetails(new Error("sensitive provider response"))),
+    imageStorageFailureMessage(imageStorageFailureDetails(new Error("private database details"))),
     {
-      code: "IMAGE_STORAGE_UNAVAILABLE",
-      message: "Could not store product images. Check the image storage service and retry.",
+      code: "IMAGE_DATABASE_UNAVAILABLE",
+      message: "Could not save the image in the GoDaddy MySQL database. Check the database connection and retry.",
     },
   );
 });
 
-test("a provider write failure rejects the upload without returning a broken image URL", async () => {
+test("a database write failure rejects the upload without returning a broken image URL", async () => {
   const store = new MemoryImageStore();
   store.put = async () => {
-    throw Object.assign(new Error("sensitive provider response"), {
-      name: "AccessDenied",
-      $metadata: { httpStatusCode: 403 },
-    });
+    throw new Error("database write failed");
   };
 
   await assert.rejects(storeImage(store, "products", pngBytes, "image/png"));

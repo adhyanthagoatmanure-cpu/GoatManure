@@ -43,7 +43,7 @@ integration that activates the moment you add real credentials to `.env`:
 | Online payment (PayU India) | `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `PAYU_ENV` | Checkout reports that PayU is not configured; Cash on Delivery remains available |
 | Transactional email (order confirmation, password reset) | `SMTP_*` | Emails are logged to the server console instead of sent |
 | Admin order alerts (email + WhatsApp) | `ADMIN_NOTIFICATION_EMAIL`, `SMTP_*`, `WHATSAPP_*` | Order creation still succeeds; missing channels are logged to the server console |
-| Database | `DATABASE_URL` | App won't start — see setup below |
+| Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | App won't start — see setup below |
 
 See `.env.example` for the full list and where to get each credential.
 
@@ -142,29 +142,27 @@ does not mark it verified.
 
 Runtime uploads must not be written into the Git checkout or Next.js `public/`
 directory: those files are not guaranteed to survive a PaaS restart or a
-GitHub-based redeployment. Product, blog, and profile uploads use a private
-Cloudflare R2 bucket; the application streams them through same-origin
-`/api/storage/...` URLs, so the bucket does not need a public endpoint and its
-credentials never reach the browser.
+GitHub-based redeployment. Product, blog, and profile image bytes are stored in
+the GoDaddy MySQL database in the `stored_images` table. The application serves
+them through same-origin `/api/storage/...` URLs; image contents are not
+exposed as database credentials or public filesystem paths.
 
-Create an R2 bucket and an API token restricted to that bucket with object
-read/write permissions. Set these **server-side** GoDaddy PaaS environment
-variables before deploying:
+Apply the new Prisma migration before deploying the application:
 
-- `R2_ACCOUNT_ID`
-- `R2_ACCESS_KEY_ID`
-- `R2_SECRET_ACCESS_KEY`
-- `R2_BUCKET_NAME`
+```bash
+npm run db:deploy
+```
 
-Do not use `NEXT_PUBLIC_` names for these values. The current product records
-and their existing `/images/...` paths remain unchanged until a legacy image
-file has been recovered and migrated. No Prisma schema migration is required;
-new managed uploads are stored as stable `/api/storage/...` paths in the
-existing image fields.
+This creates the `stored_images` table. GoDaddy's MySQL account must allow table
+creation and have enough database storage for uploaded image files. Uploads
+are limited to 5 MB per image; product forms can upload up to 10 images at
+once.
 
-After restoring any available legacy upload files into their matching
-`public/images/{products,blog,profiles}/uploads/` folders, preview the
-reference migration:
+Existing image URLs and database records remain unchanged. New uploads are
+saved in MySQL and use stable `/api/storage/...` URLs. Legacy files can be
+imported into MySQL after restoring them into their matching
+`public/images/{products,blog,profiles}/uploads/` folders:
+
 
 ```bash
 npm run storage:migrate-legacy -- --dry-run
@@ -180,8 +178,8 @@ npm run storage:migrate-legacy -- --apply
 Missing source files are reported and their database references are retained;
 the migration does not delete source files or substitute images.
 
-Orphan cleanup is dry-run by default and prints candidate object keys without
-deleting:
+Orphan cleanup is dry-run by default and prints candidate database image keys
+without deleting:
 
 ```bash
 npm run storage:cleanup
@@ -193,13 +191,8 @@ Review that report before explicitly deleting confirmed candidates:
 npm run storage:cleanup -- --delete
 ```
 
-To clean up abandoned uploads automatically, configure a GoDaddy PaaS scheduled
-task to run `npm run storage:cleanup -- --delete` periodically, using the same
-server environment variables and database configuration as the app. The
-repository does not contain a verified GoDaddy scheduler configuration, so
-schedule availability and setup must be confirmed in the PaaS dashboard. Do not
-run deletion mode against production until its dry-run candidate list has been
-reviewed.
+Do not run deletion mode against production until its dry-run candidate list
+has been reviewed.
 WhatsApp delivery failures are logged and do not invalidate the order.
 
 ## WhatsApp Cloud API webhook
@@ -265,8 +258,8 @@ project after setup, run `npm run lint` and `npm run build`.
 
 ```bash
 npm install                      # also runs `prisma generate` automatically
-cp .env.example .env              # then fill in DATABASE_URL at minimum
-docker compose up -d mysql        # OR point DATABASE_URL at a hosted MySQL server
+cp .env.example .env              # then fill in the DB_* variables
+docker compose up -d mysql        # OR point DB_HOST/DB_PORT at a hosted MySQL server
 npx prisma migrate deploy         # applies the committed migration in prisma/migrations
 npm run db:seed                   # products, ADYA50 coupon, admin user, demo content
 npm run dev

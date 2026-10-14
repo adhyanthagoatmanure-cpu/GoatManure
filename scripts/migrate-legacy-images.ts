@@ -29,10 +29,11 @@ async function main() {
   }
   const apply = args.includes("--apply");
   loadEnvConfig(process.cwd());
-  const [{ prisma }, { imageMimeFromBytes, storeImage, createR2ImageStore }, { normalizeProductImages }] =
+  const [{ prisma }, { imageMimeFromBytes, storeImage }, { createDatabaseImageStore }, { normalizeProductImages }] =
     await Promise.all([
       import("../src/lib/prisma"),
       import("../src/server/storage/image-storage"),
+      import("../src/server/storage/database-image-store"),
       import("../src/lib/utils"),
     ]);
 
@@ -53,7 +54,7 @@ async function main() {
     if (legacy) referenced.set(legacy.path, legacy);
   }
 
-  const store = createR2ImageStore();
+  const store = createDatabaseImageStore();
   const replacements = new Map<string, string>();
   const uploadedUrls: string[] = [];
   let missing = 0;

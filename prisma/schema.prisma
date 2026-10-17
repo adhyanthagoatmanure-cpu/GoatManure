@@ -1,5 +1,5 @@
 // ADHYANTHA GOAT MANURE — database schema
-// MySQL via Prisma. Run `npm run db:migrate` after setting DATABASE_URL.
+// MySQL via Prisma. Set DB_* or DATABASE_URL, then apply migrations with `npm run db:deploy`.
 
 generator client {
   provider = "prisma-client-js"

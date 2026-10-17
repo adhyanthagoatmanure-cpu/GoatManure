@@ -1,32 +1,8 @@
 /* eslint @typescript-eslint/no-require-imports: off */
 const { spawn, spawnSync } = require("node:child_process");
+const { configureDatabaseUrl } = require("./database-url");
 
 require("@next/env").loadEnvConfig(process.cwd());
-
-function configureDatabaseUrl() {
-  if (process.env.DATABASE_URL) {
-    return;
-  }
-
-  const requiredVariables = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD"];
-  const missingVariables = requiredVariables.filter(
-    (name) => process.env[name] === undefined || process.env[name] === "",
-  );
-
-  if (missingVariables.length > 0) {
-    throw new Error(
-      `Cannot start application: missing environment variable(s): ${missingVariables.join(", ")}. Set DATABASE_URL or all required DB_* variables.`,
-    );
-  }
-
-  const databaseUrl = new URL("mysql://localhost");
-  databaseUrl.hostname = process.env.DB_HOST;
-  databaseUrl.port = process.env.DB_PORT || "3306";
-  databaseUrl.username = process.env.DB_USER;
-  databaseUrl.password = process.env.DB_PASSWORD;
-  databaseUrl.pathname = `/${process.env.DB_NAME}`;
-  process.env.DATABASE_URL = databaseUrl.toString();
-}
 
 function deployMigrations() {
   const result = spawnSync(

@@ -1,9 +1,35 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { ADMIN_EMAIL } from "../src/lib/admin-identity";
 
 const prisma = new PrismaClient();
+const isProduction = process.env.NODE_ENV === "production";
+
+async function hashInitialAdminPassword() {
+  const password = process.env.INITIAL_ADMIN_PASSWORD;
+  if (!password || password.length < 12) {
+    throw new Error(
+      "INITIAL_ADMIN_PASSWORD must be set to at least 12 characters when creating the admin user.",
+    );
+  }
+  return bcrypt.hash(password, 12);
+}
 
 async function main() {
+  if (isProduction && process.env.ALLOW_PRODUCTION_SEED !== "true") {
+    throw new Error(
+      "Production seeding is disabled. Set ALLOW_PRODUCTION_SEED=true only for an approved seed run.",
+    );
+  }
+
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: ADMIN_EMAIL },
+    select: { id: true },
+  });
+  const adminPasswordHash = existingAdmin
+    ? undefined
+    : await hashInitialAdminPassword();
+
   console.log("Seeding ADHYANTHA database…");
 
   // ── Categories ────────────────────────────────────────────────────────
@@ -136,31 +162,33 @@ async function main() {
   });
 
   // ── Admin user ───────────────────────────────────────────────────────
-  const adminPasswordHash = await bcrypt.hash("Admin@12345", 12);
-  await prisma.user.upsert({
-    where: { email: "admin@adhyantha.com" },
-    update: {},
-    create: {
-      name: "ADHYANTHA Admin",
-      email: "admin@adhyantha.com",
-      passwordHash: adminPasswordHash,
-      role: "ADMIN",
-    },
-  });
+  if (adminPasswordHash) {
+    await prisma.user.upsert({
+      where: { email: ADMIN_EMAIL },
+      update: {},
+      create: {
+        name: "ADHYANTHA Admin",
+        email: ADMIN_EMAIL,
+        passwordHash: adminPasswordHash,
+        role: "ADMIN",
+      },
+    });
+  }
 
-  // ── Demo customer (handy for testing the account section) ──────────────
-  const demoPasswordHash = await bcrypt.hash("Demo@12345", 12);
-  await prisma.user.upsert({
-    where: { email: "demo@adhyantha.com" },
-    update: {},
-    create: {
-      name: "Demo Customer",
-      email: "demo@adhyantha.com",
-      phone: "9876543210",
-      passwordHash: demoPasswordHash,
-      role: "CUSTOMER",
-    },
-  });
+  if (!isProduction && process.env.DEMO_CUSTOMER_PASSWORD) {
+    const demoPasswordHash = await bcrypt.hash(process.env.DEMO_CUSTOMER_PASSWORD, 12);
+    await prisma.user.upsert({
+      where: { email: "demo@adhyantha.com" },
+      update: {},
+      create: {
+        name: "Demo Customer",
+        email: "demo@adhyantha.com",
+        phone: "9876543210",
+        passwordHash: demoPasswordHash,
+        role: "CUSTOMER",
+      },
+    });
+  }
 
   // ── Demo testimonials — clearly flagged, per spec ───────────────────────
   const testimonials = [
@@ -168,9 +196,11 @@ async function main() {
     { customerName: "Ananya S.", location: "Bengaluru, KA", rating: 5, review: "Easy to use, no bad smell once it dries, and my balcony garden is thriving. Delivery was quick too.", sortOrder: 1 },
     { customerName: "Vikram P.", location: "Pune, MH", rating: 4, review: "Good quality manure, noticeably improved my rose bushes. Would like to see a bigger bulk size option in future.", sortOrder: 2 },
   ];
-  for (const t of testimonials) {
-    const existing = await prisma.testimonial.findFirst({ where: { customerName: t.customerName } });
-    if (!existing) await prisma.testimonial.create({ data: { ...t, isDemo: true, isPublished: true } });
+  if (!isProduction) {
+    for (const t of testimonials) {
+      const existing = await prisma.testimonial.findFirst({ where: { customerName: t.customerName } });
+      if (!existing) await prisma.testimonial.create({ data: { ...t, isDemo: true, isPublished: true } });
+    }
   }
 
   // ── Demo blog posts, matching the spec's example titles ─────────────────
@@ -219,8 +249,6 @@ async function main() {
   console.log("Seed complete.");
   console.log(`  Products: ${goatManure.name} + 2 more`);
   console.log("  Coupon: ADYA50 (₹50 flat)");
-  console.log("  Admin login: admin@adhyantha.com / Admin@12345  (change this immediately)");
-  console.log("  Demo customer: demo@adhyantha.com / Demo@12345");
 }
 
 main()

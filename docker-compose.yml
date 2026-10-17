@@ -1,31 +1,18 @@
-# Local database options for development.
-# Keep PostgreSQL available for compatibility checks while MySQL is validated.
+# Local MySQL for development. Set DB_NAME, DB_USER, DB_PASSWORD, and
+# MYSQL_ROOT_PASSWORD in .env before starting the container.
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: adhyantha
-    ports:
-      - "5432:5432"
-    volumes:
-      - adhyantha_pgdata:/var/lib/postgresql/data
-
   mysql:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: adhyantha
-      MYSQL_USER: adhyantha
-      MYSQL_PASSWORD: adhyantha
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${DB_NAME:?Set DB_NAME in .env}
+      MYSQL_USER: ${DB_USER:?Set DB_USER in .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     ports:
       - "3306:3306"
     volumes:
       - adhyantha_mysql_data:/var/lib/mysql
 
 volumes:
-  adhyantha_pgdata:
   adhyantha_mysql_data:

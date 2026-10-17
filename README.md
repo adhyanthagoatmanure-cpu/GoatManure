@@ -254,52 +254,80 @@ The valid request returns `200` and the challenge; the invalid token returns
 `403`. POST requests must include a valid Meta signature. To check the route and
 project after setup, run `npm run lint` and `npm run build`.
 
-## Setup
+## Database setup
+
+The application and all committed Prisma migrations use MySQL. Node.js 22 and
+MySQL 8.0 or later are supported. Set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
+and `DB_PASSWORD` in the runtime environment. Prisma Client, Prisma CLI commands,
+and the production start script construct the MySQL connection URL from these
+variables. A valid `DATABASE_URL` can be used as an override; when present, it
+takes precedence over `DB_*`.
+
+For local development, copy `.env.example` to `.env`, set local database
+credentials, and start the MySQL container:
 
 ```bash
-npm install                      # also runs `prisma generate` automatically
-cp .env.example .env              # then fill in the DB_* variables
-docker compose up -d mysql        # OR point DB_HOST/DB_PORT at a hosted MySQL server
-npx prisma migrate deploy         # applies the committed migration in prisma/migrations
-npm run db:seed                   # products, ADYA50 coupon, admin user, demo content
+docker compose up -d mysql
+npm ci
+npm run db:deploy
+npm run db:seed
 npm run dev
 ```
 
-Open http://localhost:3000. Admin console is at **/admin/login**.
+The compose file reads credentials from `.env`; it does not contain database
+passwords. `MYSQL_ROOT_PASSWORD` is only needed for the local container.
+Open http://localhost:3000. The admin console is at **/admin/login**.
 
-**Demo logins (seeded — change immediately in production):**
-- Admin: `admin@adhyantha.com` / `Admin@12345`
-- Customer: `demo@adhyantha.com` / `Demo@12345`
+Set `INITIAL_ADMIN_PASSWORD` (at least 12 characters) in `.env` before the
+first seed, when it creates the admin account.
+The development seed creates the admin `adhyanthagoatmanure@gmail.com`. To
+create the optional demo customer `demo@adhyantha.com`, also set
+`DEMO_CUSTOMER_PASSWORD` in `.env`. Do not reuse local seed passwords in
+production.
 
-## A note on this specific build environment
+### GoDaddy MySQL deployment
 
-This project was built inside a sandboxed container with restricted network access —
-it could reach `npmjs.org`, `github.com`, and Ubuntu's package mirrors, but not
-`binaries.prisma.sh`, which is where Prisma's CLI downloads its schema/query engine
-binaries from. That meant `prisma generate` and `prisma migrate dev` could not be run
-*in this sandbox*.
+1. Create a MySQL database and database user in GoDaddy, and grant that user
+   access to the database. GoDaddy may prefix the database and username; use
+   their exact values below.
+2. Add these server-side environment variables in the GoDaddy Node.js 22 app
+   configuration. Keep the password private; do not commit it or place it in a
+   `NEXT_PUBLIC_*` variable.
 
-This is a constraint of the build environment, not of your project — the same
-commands will work normally the moment you run `npm install` anywhere with regular
-internet access (your laptop, CI, Vercel, etc.), because `postinstall` runs
-`prisma generate` automatically.
+   ```text
+   DB_HOST=<GoDaddy MySQL hostname>
+   DB_PORT=<GoDaddy MySQL port, usually 3306>
+   DB_NAME=<GoDaddy database name>
+   DB_USER=<GoDaddy database user>
+   DB_PASSWORD=<GoDaddy database password>
+   ```
 
-To still ship something genuinely verified rather than just hoped-to-work:
-- The initial migration (`prisma/migrations/20260908054500_init/migration.sql`) was
-  hand-authored to match `schema.prisma` exactly, then **actually executed against a
-  real local Postgres instance** in the sandbox — every table, enum, and foreign key
-  was created without error.
-- The seed data was validated the same way: inserted as raw SQL through every
-  relation (products → variants → categories, users → orders → order items → coupon
-  usage), including the exact `₹149 − ₹50 = ₹99` example from the brief, which came
-  back correct from the database.
-- The full application code was type-checked with `tsc --noEmit` throughout
-  development. The only errors ever left unresolved are the expected
-  `"@prisma/client" has no exported member` cascade from the client not being
-  generated — every other type error surfaced during the build was found and fixed.
+3. Install dependencies and generate the client, then apply only pending
+   migrations:
 
-Run `npx prisma migrate deploy` (applies the committed migration as-is) rather than
-`migrate dev` (which would try to generate a new migration) for the smoothest first run.
+   ```bash
+   npm ci
+   npx prisma generate
+   npm run db:deploy
+   npm run start
+   ```
+
+   `npm run start` also runs `prisma migrate deploy` before starting Next.js;
+   applying the same committed migrations again is safe. `migrate deploy`
+   does not reset or drop existing tables, and should be used instead of
+   `migrate dev`, `db push`, or any reset command on production.
+
+4. Production seeding is disabled unless explicitly enabled. Only after
+   approving the production seed, set `ALLOW_PRODUCTION_SEED=true` and a strong
+   `INITIAL_ADMIN_PASSWORD` in GoDaddy's private environment settings, run
+   `npm run db:seed` once, then remove both settings. Production seeding does
+   not create demo customer accounts or demo testimonials. The seed does not
+   overwrite existing users or business data when run again. On later approved
+   runs, the existing admin means `INITIAL_ADMIN_PASSWORD` is not needed.
+
+Do not run migrations against an existing GoDaddy database until its data is
+backed up and the current `_prisma_migrations` history has been checked. The
+commands above were not run against GoDaddy or any production database.
 
 ## Design system
 
@@ -324,8 +352,9 @@ placements.
 ```
 prisma/
   schema.prisma          Full data model (users, products, orders, coupons, etc.)
-  migrations/             Committed initial migration
+  migrations/             Ordered MySQL initial and incremental migrations
   seed.ts                 Demo data — products, ADYA50, admin user, demo content
+prisma.config.js          Loads DB_* settings for Prisma CLI commands
 src/
   app/                    Routes (App Router) — storefront, /account, /admin, /api
   components/
@@ -366,6 +395,7 @@ superficially covering every line item. A few things worth knowing:
 
 1. Add real credentials (§ above) for OAuth, PayU, and SMTP
 2. Replace placeholder product photography and contact details
-3. Point `DATABASE_URL` at a production Postgres and run `prisma migrate deploy`
-4. Change the seeded admin password immediately
-5. Deploy (Vercel is the path of least resistance for Next.js; any Node host works)
+3. Configure GoDaddy's MySQL `DB_*` environment variables and back up the database
+4. Review the existing `_prisma_migrations` history, then apply pending MySQL migrations
+5. Only seed production after approval, using a private `INITIAL_ADMIN_PASSWORD`
+6. Deploy on a Node.js 22 host

@@ -262,6 +262,8 @@ and `DB_PASSWORD` in the runtime environment. Prisma Client, Prisma CLI commands
 and the production start script construct the MySQL connection URL from these
 variables. A valid `DATABASE_URL` can be used as an override; when present, it
 takes precedence over `DB_*`.
+Next.js production builds do not require database credentials; configure the
+database in the runtime environment before starting the deployed application.
 
 For local development, copy `.env.example` to `.env`, set local database
 credentials, and start the MySQL container:

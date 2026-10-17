@@ -1,5 +1,15 @@
 const REQUIRED_DATABASE_VARIABLES = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD"];
 
+function hasDatabaseConfiguration(environment = process.env) {
+  if (environment.DATABASE_URL?.trim()) {
+    return true;
+  }
+
+  return REQUIRED_DATABASE_VARIABLES.every(
+    (name) => environment[name] !== undefined && environment[name] !== "",
+  );
+}
+
 function configureDatabaseUrl(environment = process.env) {
   const configuredUrl = environment.DATABASE_URL?.trim();
 
@@ -39,4 +49,4 @@ function configureDatabaseUrl(environment = process.env) {
   return environment.DATABASE_URL;
 }
 
-module.exports = { configureDatabaseUrl };
+module.exports = { configureDatabaseUrl, hasDatabaseConfiguration };

@@ -1,6 +1,35 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { configureDatabaseUrl } from "../scripts/database-url";
+import {
+  configureDatabaseUrl,
+  hasDatabaseConfiguration,
+} from "../scripts/database-url";
+
+test("allows Next.js to build when database environment variables are absent", () => {
+  assert.equal(hasDatabaseConfiguration({}), false);
+  assert.equal(hasDatabaseConfiguration({ DATABASE_URL: "" }), false);
+});
+
+test("detects database configuration from either supported environment format", () => {
+  assert.equal(hasDatabaseConfiguration({ DATABASE_URL: "mysql://localhost/db" }), true);
+  assert.equal(
+    hasDatabaseConfiguration({
+      DB_HOST: "localhost",
+      DB_NAME: "db",
+      DB_USER: "user",
+      DB_PASSWORD: "secret",
+    }),
+    true,
+  );
+  assert.equal(
+    hasDatabaseConfiguration({
+      DB_HOST: "localhost",
+      DB_NAME: "db",
+      DB_USER: "user",
+    }),
+    false,
+  );
+});
 
 test("constructs a MySQL URL and safely encodes reserved credential characters", () => {
   const environment = {

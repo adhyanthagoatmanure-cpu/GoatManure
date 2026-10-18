@@ -15,8 +15,12 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const emailVerified = new Date();
   await prisma.$transaction([
-    prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
+    prisma.user.update({
+      where: { id: record.userId },
+      data: { passwordHash, emailVerified },
+    }),
     prisma.passwordResetToken.update({ where: { id: record.id }, data: { used: true } }),
   ]);
 

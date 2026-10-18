@@ -6,7 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import baseAuthConfig from "@/lib/auth.config";
-import { ADMIN_EMAIL } from "@/lib/admin-identity";
+import { roleForIdentity } from "@/lib/admin-identity";
 import { consumeWhatsAppOtpLoginTicket } from "@/server/auth/whatsapp-otp";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -88,11 +88,15 @@ const authConfig: NextAuthConfig = {
               url: "https://graph.facebook.com/me?fields=id,name,email,picture",
             },
             profile(profile) {
+              const email = typeof profile.email === "string"
+                ? profile.email.trim().toLowerCase()
+                : undefined;
               return {
                 id: profile.id,
                 name: profile.name,
-                email: typeof profile.email === "string" ? profile.email.trim().toLowerCase() : undefined,
+                email,
                 image: profile.picture?.data?.url ?? null,
+                emailVerified: email ? new Date() : null,
               };
             },
           }),
@@ -168,13 +172,7 @@ const authConfig: NextAuthConfig = {
           ? await prisma.user.findUnique({ where: { email: token.email as string } })
           : null;
       if (dbUser) {
-        const role = dbUser.email === ADMIN_EMAIL ? "ADMIN" : "CUSTOMER";
-        if (dbUser.role !== role) {
-          await prisma.user.update({
-            where: { id: dbUser.id },
-            data: { role },
-          });
-        }
+        const role = roleForIdentity(dbUser.email, dbUser.emailVerified, dbUser.role);
         token.id = dbUser.id;
         token.role = role;
         token.phone = dbUser.phone;

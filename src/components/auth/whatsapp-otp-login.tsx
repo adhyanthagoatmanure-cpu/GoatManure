@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { MessageCircle, RotateCw } from "lucide-react";
 import { indianMobileNumberSchema } from "@/lib/validations/phone";
@@ -9,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function WhatsAppOtpLogin({ callbackUrl }: { callbackUrl: string }) {
-  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [challengeId, setChallengeId] = useState<string | null>(null);
@@ -88,8 +86,7 @@ export function WhatsAppOtpLogin({ callbackUrl }: { callbackUrl: string }) {
         setError("Unable to sign in with that code. Request a new code and try again.");
         return;
       }
-      router.replace(callbackUrl);
-      router.refresh();
+      window.location.assign(result.url ?? callbackUrl);
     } catch {
       setError("Unable to verify the code. Please try again.");
     } finally {

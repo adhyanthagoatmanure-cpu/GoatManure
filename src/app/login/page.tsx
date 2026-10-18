@@ -29,7 +29,7 @@ const NEXTAUTH_ERROR_MESSAGES: Record<string, string> = {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/account";
   const oauthError = searchParams.get("error");
 
@@ -56,9 +56,17 @@ function LoginForm() {
 
   async function onSubmit(values: LoginInput) {
     setServerError(null);
-    const res = await signIn("credentials", { ...values, redirect: false, redirectTo: callbackUrl });
-    if (!res?.ok || res.error) {
-      setServerError(NEXTAUTH_ERROR_MESSAGES.CredentialsSignin);
+    try {
+      const res = await signIn("credentials", { ...values, redirect: false, redirectTo: callbackUrl });
+      if (!res?.ok || res.error) {
+        setServerError(NEXTAUTH_ERROR_MESSAGES.CredentialsSignin);
+        return;
+      }
+
+      await update();
+      window.location.assign(res.url ?? callbackUrl);
+    } catch {
+      setServerError(NEXTAUTH_ERROR_MESSAGES.Default);
     }
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { pruneUnavailableCartLines } from "@/lib/cart";
 import type { CartLine } from "@/types";
 
 const STORAGE_KEY = "adhyantha_cart_v1";
@@ -11,6 +12,7 @@ interface CartContextValue {
   isHydrated: boolean;
   addItem: (variantId: string, quantity?: number) => void;
   removeItem: (variantId: string) => void;
+  removeUnavailableItems: (variantIds: string[]) => void;
   setQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
 }
@@ -49,9 +51,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeItem = (variantId: string) => {
+  const removeItem = useCallback((variantId: string) => {
     setLines((prev) => prev.filter((l) => l.variantId !== variantId));
-  };
+  }, []);
+  const removeUnavailableItems = useCallback((variantIds: string[]) => {
+    setLines((prev) => pruneUnavailableCartLines(prev, variantIds));
+  }, []);
 
   const setQuantity = (variantId: string, quantity: number) => {
     if (quantity < 1) return removeItem(variantId);
@@ -64,7 +69,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ lines, itemCount, isHydrated, addItem, removeItem, setQuantity, clearCart }}
+      value={{
+        lines,
+        itemCount,
+        isHydrated,
+        addItem,
+        removeItem,
+        removeUnavailableItems,
+        setQuantity,
+        clearCart,
+      }}
     >
       {children}
     </CartContext.Provider>

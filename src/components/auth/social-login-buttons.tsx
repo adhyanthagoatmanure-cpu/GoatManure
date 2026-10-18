@@ -1,6 +1,7 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { getCsrfToken } from "next-auth/react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 /** A simple, generic "G" mark and "f" mark — not the official Google/Meta
@@ -26,6 +27,39 @@ function FacebookMark() {
 }
 
 export function SocialLoginButtons({ callbackUrl = "/" }: { callbackUrl?: string }) {
+  const [isStartingOAuth, setIsStartingOAuth] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function startOAuth(provider: "google" | "facebook") {
+    setError(null);
+    setIsStartingOAuth(true);
+    try {
+      const csrfToken = await getCsrfToken();
+      if (!csrfToken) throw new Error("Unable to prepare secure sign-in.");
+
+      const form = document.createElement("form");
+      form.method = "post";
+      form.action = `/api/auth/signin/${provider}`;
+
+      for (const [name, value] of Object.entries({
+        csrfToken,
+        callbackUrl,
+      })) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      }
+
+      document.body.appendChild(form);
+      form.requestSubmit();
+    } catch {
+      setIsStartingOAuth(false);
+      setError("Unable to start sign-in. Please try again.");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <Button
@@ -33,7 +67,8 @@ export function SocialLoginButtons({ callbackUrl = "/" }: { callbackUrl?: string
         variant="outline"
         size="lg"
         className="w-full"
-        onClick={() => signIn("google", { redirectTo: `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` })}
+        onClick={() => startOAuth("google")}
+        isLoading={isStartingOAuth}
       >
         <GoogleMark /> Continue with Google
       </Button>
@@ -42,10 +77,12 @@ export function SocialLoginButtons({ callbackUrl = "/" }: { callbackUrl?: string
         variant="outline"
         size="lg"
         className="w-full"
-        onClick={() => signIn("facebook", { redirectTo: callbackUrl })}
+        onClick={() => startOAuth("facebook")}
+        isLoading={isStartingOAuth}
       >
         <FacebookMark /> Continue with Facebook
       </Button>
+      {error && <p role="alert" className="text-sm text-[var(--color-error)]">{error}</p>}
     </div>
   );
 }

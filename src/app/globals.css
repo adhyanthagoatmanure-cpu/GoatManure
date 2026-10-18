@@ -127,11 +127,6 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-
-  background-image: url("/images/home-garden-bg.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
 }
   .home-hero-bg::after {
     content: "";

@@ -7,7 +7,7 @@ import { LeafMotif } from "@/components/brand/product-bag-illustration";
 export function Hero() {
   return (
     <>
-      <section className="relative aspect-[8/3] min-h-[220px] overflow-hidden border-b border-[var(--color-border)] bg-[#18230f]">
+      <section className="relative aspect-[8/3] min-h-0 overflow-hidden border-b border-[var(--color-border)] bg-[#18230f] sm:min-h-[220px]">
         <div className="home-hero-bg">
           <Image
             src="/images/home-garden-bg.png"
@@ -18,20 +18,20 @@ export function Hero() {
             className="object-contain"
           />
         </div>
-        <LeafMotif className="pointer-events-none absolute -left-6 -top-6 z-10 h-40 w-40 sm:h-56 sm:w-56" />
-        <div className="container-page relative z-10 flex h-full justify-center py-8 text-center sm:py-20 lg:py-20">
-          <div className="flex max-w-2xl flex-col items-center justify-center">
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 sm:mt-8">
-              <Link href="/products">
-                <Button size="lg">
+        <LeafMotif className="pointer-events-none absolute -left-6 -top-6 z-10 h-24 w-24 sm:h-56 sm:w-56" />
+        <div className="container-page absolute inset-x-0 bottom-0 z-10 flex h-full justify-center pb-3 text-center sm:relative sm:py-8 sm:pb-0 lg:py-20">
+          <div className="flex max-w-2xl flex-col items-center justify-end sm:justify-center">
+            <div className="mt-2 flex w-full max-w-[17rem] items-center justify-center gap-2 sm:mt-8 sm:w-auto sm:max-w-none sm:gap-3">
+              <Link href="/products" className="flex-none sm:flex-initial">
+                <Button size="md" className="!h-9 w-[6.5rem] gap-1 rounded-lg px-1.5 text-[10px] sm:!h-13 sm:w-auto sm:gap-2 sm:rounded-[var(--radius-md)] sm:px-7 sm:text-base">
                   Shop Now <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/benefits">
+              <Link href="/benefits" className="flex-none sm:flex-initial">
                 <Button
-                  size="lg"
+                  size="md"
                   variant="ghost"
-                  className="border border-black bg-white !text-black shadow-md hover:bg-white/90"
+                  className="!h-9 w-[6.5rem] gap-1 rounded-lg border border-black bg-white !px-1.5 text-[10px] !text-black shadow-md hover:bg-white/90 sm:!h-13 sm:w-auto sm:gap-2 sm:rounded-[var(--radius-md)] sm:!px-7 sm:text-base"
                 >
                   Learn how it works
                 </Button>

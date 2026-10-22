@@ -13,7 +13,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-[var(--color-ink)]">
+          <label htmlFor={inputId} className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">
             {label}
           </label>
         )}
@@ -22,18 +22,24 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              "h-11 w-full appearance-none rounded-[var(--radius-sm)] border bg-[var(--color-surface)] px-3.5 pr-9 text-sm text-[var(--color-ink)]",
-              "focus:outline-none focus:ring-2 focus:ring-[var(--color-canopy)]/30 focus:border-[var(--color-canopy)]",
-              error ? "border-[var(--color-error)]" : "border-[var(--color-border-strong)]",
+              "h-11 w-full appearance-none rounded-[var(--radius-sm)] border bg-white/90 px-3.5 pr-9 text-sm text-[var(--color-ink)] transition-[border-color,box-shadow,background-color]",
+              "focus:outline-none focus:bg-white focus:ring-4 focus:ring-[var(--color-canopy)]/15 focus:border-[var(--color-canopy)]",
+              error ? "border-[var(--color-error)]" : "border-[var(--color-field-border)]",
               className
             )}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error && inputId ? `${inputId}-error` : undefined}
             {...props}
           >
             {children}
           </select>
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-stone)]" />
         </div>
-        {error && <p className="mt-1.5 text-xs text-[var(--color-error)]">{error}</p>}
+        {error && (
+          <p id={inputId ? `${inputId}-error` : undefined} role="alert" className="mt-1.5 text-xs font-medium text-[var(--color-error)]">
+            {error}
+          </p>
+        )}
       </div>
     );
   }

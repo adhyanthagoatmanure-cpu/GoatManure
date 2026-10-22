@@ -3,12 +3,18 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Check, ChevronLeft, ChevronRight, Ellipsis, Leaf, Pencil, Plus, Search, ShieldCheck, Sprout, Trash2,
+  Check, ChevronLeft, ChevronRight, Ellipsis, Leaf, Pencil, Plus, Search, ShieldCheck, Sprout, Trash2, X,
 } from "lucide-react";
 import { useToast } from "@/components/providers/toast-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { PageSpinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
+import {
+  AdminPageHeader, FIELD, ICON_BUTTON, ICON_BUTTON_DANGER, PANEL, PANEL_GLASS, TABLE_HEAD, TBODY, TD, TH, TR,
+} from "@/components/admin/admin-ui";
 
 type Benefit = {
   id: string;
@@ -25,11 +31,11 @@ type Benefit = {
 type ProductOption = { id: string; name: string };
 
 const summaries = [
-  ["100% Organic", "No chemical additives", Leaf, "bg-[#edf8e7]"],
-  ["Richer Soil Fertility", "Improves soil structure", Sprout, "bg-[#fff7e8]"],
-  ["Higher Yield", "Supports stronger growth", Sprout, "bg-[#fdf0ed]"],
-  ["Eco Friendly", "Supports sustainable farming", Leaf, "bg-[#eaf6f8]"],
-  ["Healthy Plants", "Stronger roots & resilience", ShieldCheck, "bg-[#eef4ec]"],
+  ["100% Organic", "No chemical additives", Leaf, "bg-sage text-canopy"],
+  ["Richer Soil Fertility", "Improves soil structure", Sprout, "bg-gold/20 text-gold-dark"],
+  ["Higher Yield", "Supports stronger growth", Sprout, "bg-bronze/10 text-bronze-dark"],
+  ["Eco Friendly", "Supports sustainable farming", Leaf, "bg-leaf/10 text-canopy-light"],
+  ["Healthy Plants", "Stronger roots & resilience", ShieldCheck, "bg-sage-deep/60 text-canopy"],
 ] as const;
 
 export default function AdminBenefitsPage() {
@@ -97,32 +103,166 @@ export default function AdminBenefitsPage() {
   if (!benefits) return <PageSpinner />;
 
   return (
-    <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf6e2] text-[#4f9c42]"><Leaf className="h-5 w-5" /></span><div><h1 className="font-display text-2xl font-semibold text-[#173d2b]">Benefits</h1><p className="text-xs text-[#6b7a70]">Discover the natural benefits of our goat manure products.</p></div></div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4" /> Add Benefit</Button>
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
+      <AdminPageHeader
+        icon={Leaf}
+        title="Benefits"
+        description="Discover the natural benefits of our goat manure products."
+        actions={<Button onClick={openCreate}><Plus className="h-4 w-4" aria-hidden /> Add Benefit</Button>}
+      />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {summaries.map(([heading, description, Icon, tint]) => (
+          <div key={heading} className={cn(PANEL_GLASS, "p-3.5 text-center")}>
+            <span className={cn("mx-auto flex h-9 w-9 items-center justify-center rounded-full", tint)}><Icon className="h-[18px] w-[18px]" aria-hidden /></span>
+            <p className="mt-2 text-sm font-semibold text-ink">{heading}</p>
+            <p className="mt-1 text-xs text-stone">{description}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-        {summaries.map(([heading, description, Icon, tone]) => <div key={heading} className={`rounded-xl border border-[#e3ebe2] ${tone} p-3 shadow-[0_6px_18px_rgba(20,67,43,0.04)]`}><Icon className="mx-auto h-5 w-5 text-[#4f9c42]" /><p className="mt-2 text-center text-xs font-semibold text-[#315b45]">{heading}</p><p className="mt-1 text-center text-[10px] text-[#718177]">{description}</p></div>)}
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <section className="min-w-0 overflow-hidden rounded-xl border border-[#e3ebe2] bg-white shadow-[0_8px_24px_rgba(20,67,43,0.05)]">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#edf2eb] p-4"><h2 className="flex items-center gap-2 font-display text-lg font-semibold text-[#173d2b]"><ShieldCheck className="h-5 w-5 text-[#69a653]" /> All Benefits</h2><div className="flex gap-2"><label className="flex items-center gap-2 rounded-lg border border-[#dfe9df] px-2.5 py-1.5"><Search className="h-3.5 w-3.5 text-[#849289]" /><input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Search benefits..." className="w-36 text-xs outline-none" /></label><select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} className="rounded-lg border border-[#dfe9df] bg-white px-2 text-xs text-[#315b45] outline-none">{categories.map((item) => <option key={item}>{item}</option>)}</select></div></div>
-          <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-left text-xs"><thead className="bg-[#f8fbf7] uppercase tracking-wide text-[#849289]"><tr><th className="px-4 py-2.5">#</th><th className="px-4 py-2.5">Benefit</th><th className="px-4 py-2.5">Category</th><th className="px-4 py-2.5">Status</th><th className="px-4 py-2.5 text-right">Action</th></tr></thead><tbody className="divide-y divide-[#edf2eb]">{visible.map((item, index) => <tr key={item.id} className="hover:bg-[#fbfdf9]"><td className="px-4 py-3 text-[#849289]">{(page - 1) * pageSize + index + 1}</td><td className="px-4 py-3"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#edf8e7] text-[#4f9c42]"><Leaf className="h-4 w-4" /></span><div><p className="font-semibold text-[#315b45]">{item.title}</p><p className="mt-0.5 max-w-[330px] truncate text-[10px] text-[#849289]">{item.product.shortDescription ?? `Benefit of ${item.product.name}`}</p></div></div></td><td className="px-4 py-3"><Badge tone="info">{item.product.category?.name ?? "General"}</Badge></td><td className="px-4 py-3"><Badge tone={item.product.status === "ACTIVE" ? "success" : item.product.status === "DRAFT" ? "warning" : "error"}>{item.product.status}</Badge></td><td className="px-4 py-3"><div className="relative flex justify-end gap-2"><button onClick={() => openEdit(item)} aria-label={`Edit ${item.title}`} className="text-[#4f9c42] hover:text-[#173d2b]"><Pencil className="h-4 w-4" /></button><button onClick={() => void remove(item)} aria-label={`Delete ${item.title}`} className="text-[#d05c55] hover:text-[#a33f39]"><Trash2 className="h-4 w-4" /></button><button type="button" onClick={() => setOpenMenuId((current) => current === item.id ? null : item.id)} aria-label={`More actions for ${item.title}`} aria-expanded={openMenuId === item.id} className="text-[#849289] hover:text-[#315b45]"><Ellipsis className="h-4 w-4" /></button>{openMenuId === item.id && <div className="absolute right-0 top-6 z-20 w-32 rounded-lg border border-[#dfe9df] bg-white p-1 text-left shadow-lg"><button type="button" onClick={() => { setOpenMenuId(null); openEdit(item); }} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[#315b45] hover:bg-[#f1f7ee]"><Pencil className="h-3.5 w-3.5" /> Edit</button><button type="button" onClick={() => { setOpenMenuId(null); void remove(item); }} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-[#d05c55] hover:bg-[#fff0ef]"><Trash2 className="h-3.5 w-3.5" /> Delete</button></div>}</div></td></tr>)}</tbody></table></div>
-          {visible.length === 0 && <p className="p-8 text-center text-sm text-[#6b7a70]">No benefits match your filters.</p>}
-          <div className="flex items-center justify-between border-t border-[#edf2eb] px-4 py-3 text-xs text-[#849289]"><span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filtered.length)} of {filtered.length} benefits</span><div className="flex items-center gap-1"><button disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="rounded-md p-1.5 hover:bg-[#f1f7ee] disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button><span className="rounded-md bg-[#4f9c42] px-2 py-1 text-white">{page}</span><button disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} className="rounded-md p-1.5 hover:bg-[#f1f7ee] disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button></div></div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section className={cn(PANEL, "min-w-0 overflow-hidden")}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink"><ShieldCheck className="h-5 w-5 text-leaf" aria-hidden /> All Benefits</h2>
+            <div className="flex flex-wrap gap-2">
+              <label className="flex h-11 items-center gap-2 rounded-[var(--radius-sm)] border border-field-border bg-white/90 px-3 transition-[border-color,box-shadow] focus-within:border-canopy focus-within:ring-4 focus-within:ring-canopy/15 sm:h-10">
+                <Search className="h-4 w-4 shrink-0 text-stone" aria-hidden />
+                <span className="sr-only">Search benefits</span>
+                <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Search benefits..." className="w-36 bg-transparent text-sm text-ink placeholder:text-stone-light focus:outline-none" />
+              </label>
+              <select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} aria-label="Filter by category" className={cn(FIELD, "sm:h-10 sm:w-auto")}>
+                {categories.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[650px] text-left text-sm">
+              <caption className="sr-only">Benefits</caption>
+              <thead className={TABLE_HEAD}>
+                <tr>
+                  <th scope="col" className={TH}>#</th>
+                  <th scope="col" className={TH}>Benefit</th>
+                  <th scope="col" className={TH}>Category</th>
+                  <th scope="col" className={TH}>Status</th>
+                  <th scope="col" className={cn(TH, "text-right")}>Action</th>
+                </tr>
+              </thead>
+              <tbody className={TBODY}>
+                {visible.map((item, index) => (
+                  <tr key={item.id} className={TR}>
+                    <td className={cn(TD, "text-stone")}>{(page - 1) * pageSize + index + 1}</td>
+                    <td className={TD}>
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-sage text-canopy"><Leaf className="h-4 w-4" aria-hidden /></span>
+                        <div>
+                          <p className="font-semibold text-ink">{item.title}</p>
+                          <p className="mt-0.5 max-w-[330px] truncate text-xs text-stone">{item.product.shortDescription ?? `Benefit of ${item.product.name}`}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className={TD}><Badge tone="info">{item.product.category?.name ?? "General"}</Badge></td>
+                    <td className={TD}><Badge tone={item.product.status === "ACTIVE" ? "success" : item.product.status === "DRAFT" ? "warning" : "error"}>{item.product.status}</Badge></td>
+                    <td className={TD}>
+                      <div className="relative flex justify-end gap-1">
+                        <button type="button" onClick={() => openEdit(item)} aria-label={`Edit ${item.title}`} className={ICON_BUTTON}><Pencil className="h-4 w-4" aria-hidden /></button>
+                        <button type="button" onClick={() => void remove(item)} aria-label={`Delete ${item.title}`} className={ICON_BUTTON_DANGER}><Trash2 className="h-4 w-4" aria-hidden /></button>
+                        <button
+                          type="button"
+                          onClick={() => setOpenMenuId((current) => current === item.id ? null : item.id)}
+                          aria-label={`More actions for ${item.title}`}
+                          aria-expanded={openMenuId === item.id}
+                          className={ICON_BUTTON}
+                        >
+                          <Ellipsis className="h-4 w-4" aria-hidden />
+                        </button>
+                        {openMenuId === item.id && (
+                          <div className="absolute right-0 top-11 z-20 w-36 rounded-[var(--radius-sm)] border border-border bg-white p-1 text-left shadow-[var(--shadow-lifted)]">
+                            <button type="button" onClick={() => { setOpenMenuId(null); openEdit(item); }} className="flex min-h-10 w-full items-center gap-2 rounded-md px-2 text-sm text-ink transition-colors hover:bg-sage"><Pencil className="h-3.5 w-3.5" aria-hidden /> Edit</button>
+                            <button type="button" onClick={() => { setOpenMenuId(null); void remove(item); }} className="flex min-h-10 w-full items-center gap-2 rounded-md px-2 text-sm text-error transition-colors hover:bg-error-bg"><Trash2 className="h-3.5 w-3.5" aria-hidden /> Delete</button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {visible.length === 0 && <p className="p-8 text-center text-sm text-stone">No benefits match your filters.</p>}
+          <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-stone">
+            <span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filtered.length)} of {filtered.length} benefits</span>
+            <nav aria-label="Benefits pagination" className="flex items-center gap-1">
+              <button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} aria-label="Previous page" className={cn(ICON_BUTTON, "disabled:opacity-40")}><ChevronLeft className="h-4 w-4" aria-hidden /></button>
+              <span className="rounded-md bg-canopy px-2.5 py-1 font-semibold text-white" aria-current="page">{page}</span>
+              <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} aria-label="Next page" className={cn(ICON_BUTTON, "disabled:opacity-40")}><ChevronRight className="h-4 w-4" aria-hidden /></button>
+            </nav>
+          </div>
         </section>
 
-        <aside className="flex flex-col gap-4">
-          <section className="rounded-xl border border-[#e3ebe2] bg-white p-4 shadow-[0_8px_24px_rgba(20,67,43,0.05)]"><div className="flex items-center justify-between"><h2 className="font-display text-base font-semibold text-[#173d2b]">Benefits Overview</h2><span className="text-[10px] font-semibold text-[#4f9c42]">View Report →</span></div><div className="mt-3 grid grid-cols-2 gap-2">{["Soil Health", "Crop Growth", "Plant Protection", "Environment"].map((label, index) => <div key={label} className={`rounded-lg p-2.5 ${["bg-[#edf8e7]", "bg-[#fff7e8]", "bg-[#fdf0ed]", "bg-[#eaf6f8]"][index]}`}><p className="text-[10px] text-[#718177]">{label}</p><p className="mt-1 text-xl font-semibold text-[#315b45]">{(benefits ?? []).filter((item) => (item.product.category?.name ?? "General").toLowerCase().includes(label.split(" ")[0].toLowerCase())).length}</p></div>)}</div></section>
-          <section className="rounded-xl border border-[#e3ebe2] bg-white p-4 shadow-[0_8px_24px_rgba(20,67,43,0.05)]"><h2 className="font-display text-base font-semibold text-[#173d2b]">Top Benefits</h2><div className="mt-3 space-y-3">{ranking.length ? ranking.map(([name, count]) => <div key={name}><div className="flex justify-between text-[10px] text-[#52695b]"><span className="flex items-center gap-1.5"><Leaf className="h-3 w-3 text-[#69a653]" />{name}</span><span>{Math.round((count / Math.max(1, benefits.length)) * 100)}%</span></div><div className="mt-1 h-1.5 rounded-full bg-[#edf2eb]"><div className="h-full rounded-full bg-[#69a653]" style={{ width: `${Math.max(12, (count / Math.max(1, ranking[0][1])) * 100)}%` }} /></div></div>) : <p className="text-xs text-[#849289]">Add benefits to see rankings.</p>}</div></section>
-          <section className="relative min-h-[145px] overflow-hidden rounded-xl bg-[#0b4d2c] p-4 text-white"><Image src="/images/05_seedling_fertile_soil.jpg" alt="" fill sizes="280px" className="object-cover opacity-35" /><div className="relative z-10"><p className="text-[10px] uppercase tracking-[0.2em] text-[#bde7a5]">ADHYANTHA</p><h2 className="mt-2 font-display text-2xl font-semibold leading-tight">Healthier Soil<br />Better Tomorrow</h2></div><div className="absolute inset-0 bg-gradient-to-r from-[#0b4d2c] via-[#0b4d2c]/70 to-transparent" /></section>
+        <aside className="flex flex-col gap-5">
+          <section className={cn(PANEL, "p-4")}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-semibold text-ink">Benefits Overview</h2>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {["Soil Health", "Crop Growth", "Plant Protection", "Environment"].map((label, index) => (
+                <div key={label} className={cn("rounded-[var(--radius-sm)] p-3", ["bg-sage", "bg-gold/15", "bg-bronze/10", "bg-leaf/10"][index])}>
+                  <p className="text-xs text-stone">{label}</p>
+                  <p className="mt-1 text-xl font-semibold text-ink">{(benefits ?? []).filter((item) => (item.product.category?.name ?? "General").toLowerCase().includes(label.split(" ")[0].toLowerCase())).length}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className={cn(PANEL, "p-4")}>
+            <h2 className="font-display text-base font-semibold text-ink">Top Benefits</h2>
+            <div className="mt-3 space-y-3">
+              {ranking.length ? ranking.map(([name, count]) => (
+                <div key={name}>
+                  <div className="flex justify-between text-xs text-stone">
+                    <span className="flex items-center gap-1.5"><Leaf className="h-3 w-3 text-leaf" aria-hidden />{name}</span>
+                    <span>{Math.round((count / Math.max(1, benefits.length)) * 100)}%</span>
+                  </div>
+                  <div className="mt-1 h-1.5 rounded-full bg-sage">
+                    <div className="h-full rounded-full bg-leaf" style={{ width: `${Math.max(12, (count / Math.max(1, ranking[0][1])) * 100)}%` }} />
+                  </div>
+                </div>
+              )) : <p className="text-xs text-stone">Add benefits to see rankings.</p>}
+            </div>
+          </section>
+          <section className="relative isolate min-h-[160px] overflow-hidden rounded-[var(--radius-md)] bg-canopy-dark p-4 text-white shadow-[var(--shadow-soft)]">
+            <Image src="/images/05_seedling_fertile_soil.jpg" alt="" fill sizes="300px" className="object-cover opacity-35" />
+            <div className="absolute inset-0 bg-gradient-to-r from-canopy-dark via-canopy-dark/70 to-transparent" />
+            <div className="relative z-10">
+              <p className="text-xs uppercase tracking-[0.2em] text-sage-deep">ADHYANTHA</p>
+              <h2 className="mt-2 font-display text-2xl font-semibold leading-tight text-white">Healthier Soil<br />Better Tomorrow</h2>
+            </div>
+          </section>
         </aside>
       </div>
 
-      {showForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#173d2b]/40 p-4"><div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"><div className="flex items-center justify-between"><h2 className="font-display text-xl font-semibold text-[#173d2b]">{editing ? "Edit Benefit" : "Add Benefit"}</h2><button onClick={() => setShowForm(false)} className="text-[#849289]">×</button></div><label className="mt-4 block text-xs font-medium text-[#52695b]">Benefit title<input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dfe9df] px-3 py-2 text-sm outline-none focus:border-[#69a653]" placeholder="e.g. 100% Organic" /></label>{!editing && <label className="mt-3 block text-xs font-medium text-[#52695b]">Product<select value={productId} onChange={(e) => setProductId(e.target.value)} className="mt-1 w-full rounded-lg border border-[#dfe9df] bg-white px-3 py-2 text-sm outline-none">{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></label>}<div className="mt-5 flex justify-end gap-2"><Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button><Button onClick={() => void save()}><Check className="h-4 w-4" /> Save Benefit</Button></div></div></div>}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-canopy-dark/40 p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="benefit-dialog-title" className="glass-strong w-full max-w-md rounded-[var(--radius-lg)] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="benefit-dialog-title" className="font-display text-xl font-semibold text-ink">{editing ? "Edit Benefit" : "Add Benefit"}</h2>
+              <button type="button" onClick={() => setShowForm(false)} aria-label="Close dialog" className={ICON_BUTTON}><X className="h-4 w-4" aria-hidden /></button>
+            </div>
+            <div className="mt-4 space-y-3">
+              <Input id="benefit-title" label="Benefit title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. 100% Organic" />
+              {!editing && (
+                <Select id="benefit-product" label="Product" value={productId} onChange={(e) => setProductId(e.target.value)}>
+                  {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                </Select>
+              )}
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button onClick={() => void save()}><Check className="h-4 w-4" aria-hidden /> Save Benefit</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

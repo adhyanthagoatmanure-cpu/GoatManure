@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PageSpinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/providers/toast-provider";
-import { formatDateTime, formatINR } from "@/lib/utils";
+import { cn, formatDateTime, formatINR } from "@/lib/utils";
+import { AdminPageHeader, PANEL } from "@/components/admin/admin-ui";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_TONE,
@@ -102,31 +103,32 @@ export default function AdminOrderDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-medium">{order.orderNumber}</h1>
-          <p className="text-sm text-[var(--color-stone)]">Placed {formatDateTime(order.createdAt)}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Print Label
-          </Button>
-          <Badge tone={ORDER_STATUS_TONE[order.orderStatus]}>{ORDER_STATUS_LABELS[order.orderStatus]}</Badge>
-        </div>
-      </div>
+      <AdminPageHeader
+        icon={Package}
+        title={order.orderNumber}
+        description={`Placed ${formatDateTime(order.createdAt)}`}
+        actions={
+          <>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer className="h-4 w-4" aria-hidden /> Print Label
+            </Button>
+            <Badge tone={ORDER_STATUS_TONE[order.orderStatus]}>{ORDER_STATUS_LABELS[order.orderStatus]}</Badge>
+          </>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-6">
           <Panel title="Items" icon={Package}>
-            <div className="flex flex-col divide-y divide-[var(--color-border)]">
+            <div className="flex flex-col divide-y divide-border">
               {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between py-2.5 text-sm">
-                  <span>{item.productName} <span className="text-[var(--color-stone)]">({item.weightLabel}) × {item.quantity}</span></span>
-                  <span className="font-medium">{formatINR(item.lineTotal)}</span>
+                <div key={item.id} className="flex justify-between gap-4 py-2.5 text-sm">
+                  <span>{item.productName} <span className="whitespace-nowrap text-stone">({item.weightLabel}) × {item.quantity}</span></span>
+                  <span className="shrink-0 font-medium text-ink">{formatINR(item.lineTotal)}</span>
                 </div>
               ))}
             </div>
-            <div className="mt-3 flex flex-col gap-1 border-t border-[var(--color-border)] pt-3 text-sm">
+            <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-sm">
               <Row label="Subtotal" value={formatINR(order.subtotal)} />
               {order.discountAmount > 0 && (
                 <Row label={`Discount${order.coupon ? ` (${order.coupon.code})` : ""}`} value={`− ${formatINR(order.discountAmount)}`} />
@@ -138,10 +140,10 @@ export default function AdminOrderDetailPage() {
 
           <Panel title="Customer & Shipping Address" icon={MapPin}>
             <p className="text-sm">
-              <UserIcon className="mr-1.5 inline h-3.5 w-3.5 text-[var(--color-stone)]" />
+              <UserIcon className="mr-1.5 inline h-3.5 w-3.5 text-stone" aria-hidden />
               {order.user?.name ?? order.guestName} ({order.user ? "Registered" : "Guest"}) — {order.user?.email ?? order.guestEmail}
             </p>
-            <p className="mt-2 text-sm text-[var(--color-stone)]">
+            <p className="mt-2 text-sm text-stone">
               {order.shippingSnapshot.fullName} — {order.shippingSnapshot.phone}<br />
               {order.shippingSnapshot.line1}{order.shippingSnapshot.line2 ? `, ${order.shippingSnapshot.line2}` : ""}<br />
               {order.shippingSnapshot.city}, {order.shippingSnapshot.state} {order.shippingSnapshot.pincode}
@@ -154,7 +156,7 @@ export default function AdminOrderDetailPage() {
                 {order.statusHistory.map((h) => (
                   <div key={h.id} className="flex justify-between text-sm">
                     <span>{ORDER_STATUS_LABELS[h.status]}{h.note ? ` — ${h.note}` : ""}</span>
-                    <span className="text-[var(--color-stone)]">{formatDateTime(h.createdAt)}</span>
+                    <span className="text-stone">{formatDateTime(h.createdAt)}</span>
                   </div>
                 ))}
               </div>
@@ -164,16 +166,18 @@ export default function AdminOrderDetailPage() {
 
         <div className="flex flex-col gap-6">
           <Panel title="Payment" icon={CreditCard}>
-            <p className="text-sm text-[var(--color-stone)]">{PAYMENT_METHOD_LABELS[order.paymentMethod]}</p>
-            <Select className="mt-3" label="Payment Status" value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}>
-              {Object.entries(PAYMENT_STATUS_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </Select>
+            <p className="text-sm text-stone">{PAYMENT_METHOD_LABELS[order.paymentMethod]}</p>
+            <div className="mt-3">
+              <Select label="Payment Status" value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}>
+                {Object.entries(PAYMENT_STATUS_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </Select>
+            </div>
           </Panel>
 
           <Panel title="Order Status" icon={Package}>
-            <Select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value as OrderStatus)}>
+            <Select aria-label="Order status" value={orderStatus} onChange={(e) => setOrderStatus(e.target.value as OrderStatus)}>
               {Object.entries(ORDER_STATUS_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
@@ -264,9 +268,9 @@ function Code128Barcode({ value }: { value: string }) {
 
 function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Package; children: React.ReactNode }) {
   return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-      <h3 className="mb-3 flex items-center gap-2 font-display text-base font-medium">
-        <Icon className="h-4 w-4 text-[var(--color-stone)]" /> {title}
+    <div className={cn(PANEL, "p-5")}>
+      <h3 className="mb-3 flex items-center gap-2 font-display text-base font-semibold text-ink">
+        <Icon className="h-4 w-4 text-leaf" aria-hidden /> {title}
       </h3>
       {children}
     </div>
@@ -275,7 +279,7 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Pa
 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
-    <div className={`flex justify-between ${bold ? "font-display text-base font-semibold text-[var(--color-ink)]" : "text-[var(--color-stone)]"}`}>
+    <div className={`flex justify-between ${bold ? "font-display text-base font-semibold text-ink" : "text-stone"}`}>
       <span>{label}</span>
       <span>{value}</span>
     </div>

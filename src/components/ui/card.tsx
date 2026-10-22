@@ -2,13 +2,5 @@ import type { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn(
-        "rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]",
-        className
-      )}
-      {...props}
-    />
-  );
+  return <div className={cn("surface rounded-[var(--radius-lg)]", className)} {...props} />;
 }

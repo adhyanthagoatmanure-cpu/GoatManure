@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, LayoutDashboard, LogOut, UserCircle2 } from "lucide-react";
 import { useSignOut } from "@/hooks/use-sign-out";
+import { cn } from "@/lib/utils";
 
 export function AdminProfileMenu({
   adminName,
@@ -24,58 +25,61 @@ export function AdminProfileMenu({
         setOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
 
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const initial = (adminName ?? "A").trim().charAt(0)?.toUpperCase() ?? "A";
+  const itemClass =
+    "flex min-h-11 items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-sage";
 
   return (
     <div ref={menuRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-3 rounded-full border border-[#dfe7df] bg-white/90 px-2 py-1.5 shadow-sm transition hover:bg-white"
+        className="flex h-11 items-center gap-2.5 rounded-full border border-[var(--glass-edge)] bg-white/80 py-1 pl-1 pr-3 shadow-sm transition-colors hover:bg-white"
         aria-label="Admin profile menu"
+        aria-haspopup="true"
+        aria-expanded={open}
       >
-        {adminImage ? <img src={adminImage} alt="" className="h-10 w-10 rounded-full object-cover shadow-inner" /> : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0f5d46] text-sm font-semibold text-white shadow-inner">{initial}</div>
+        {adminImage ? <img src={adminImage} alt="" className="h-9 w-9 rounded-full object-cover" /> : (
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-canopy text-sm font-semibold text-white">{initial}</div>
         )}
         <div className="hidden min-w-0 text-left sm:block">
-          <div className="truncate text-sm font-semibold text-[#173b2d]">{adminName}</div>
-          <div className="truncate text-[11px] text-[#5f786f]">{adminEmail ?? "Administrator"}</div>
+          <div className="max-w-[10rem] truncate text-sm font-semibold leading-tight text-ink">{adminName}</div>
+          <div className="max-w-[10rem] truncate text-xs leading-tight text-stone">{adminEmail ?? "Administrator"}</div>
         </div>
-        <ChevronDown className="h-4 w-4 text-[#355d50]" />
+        <ChevronDown className={cn("h-4 w-4 text-stone transition-transform", open && "rotate-180")} aria-hidden />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-3 w-64 overflow-hidden rounded-[22px] border border-[#e3e7e3] bg-white p-2 shadow-[0_20px_45px_rgba(15,41,32,0.12)]">
-          <div className="flex items-center gap-3 border-b border-[#edf0ee] px-3 py-3">
-            {adminImage ? <img src={adminImage} alt="" className="h-12 w-12 rounded-full object-cover" /> : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0f5d46] text-base font-semibold text-white">{initial}</div>
+        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-[var(--radius-md)] border border-[var(--glass-edge)] bg-white/95 p-1.5 shadow-[var(--shadow-lifted)] animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center gap-3 border-b border-border px-3 py-3">
+            {adminImage ? <img src={adminImage} alt="" className="h-11 w-11 rounded-full object-cover" /> : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-canopy text-base font-semibold text-white">{initial}</div>
             )}
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-[#173b2d]">{adminName}</div>
-              <div className="truncate text-xs text-[#5f786f]">{adminEmail ?? "Administrator"}</div>
+              <div className="truncate text-sm font-semibold text-ink">{adminName}</div>
+              <div className="truncate text-xs text-stone">{adminEmail ?? "Administrator"}</div>
             </div>
           </div>
 
-          <div className="mt-1 space-y-1 py-1">
-            <Link
-              href="/admin"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#234c3e] transition hover:bg-[#f2f8f4]"
-            >
-              <LayoutDashboard className="h-4 w-4" />
+          <div className="mt-1 space-y-0.5 py-1">
+            <Link href="/admin" onClick={() => setOpen(false)} className={itemClass}>
+              <LayoutDashboard className="h-4 w-4" aria-hidden />
               Dashboard
             </Link>
-            <Link
-              href="/account"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#234c3e] transition hover:bg-[#f2f8f4]"
-            >
-              <UserCircle2 className="h-4 w-4" />
+            <Link href="/account" onClick={() => setOpen(false)} className={itemClass}>
+              <UserCircle2 className="h-4 w-4" aria-hidden />
               My Account
             </Link>
             <button
@@ -84,9 +88,9 @@ export function AdminProfileMenu({
                 setOpen(false);
                 void signOutAndNavigate();
               }}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#b84f4f] transition hover:bg-[#fff2f2]"
+              className="flex min-h-11 w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-left text-sm font-semibold text-error transition-colors hover:bg-error-bg"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" aria-hidden />
               Logout
             </button>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { MapPin, Plus, ShoppingBag } from "lucide-react";
@@ -166,15 +167,18 @@ export default function CheckoutPage() {
           ))}
         </form>
       )}
-      <h1 className="font-display text-3xl font-medium sm:text-4xl">Checkout</h1>
+      <header>
+        <p className="eyebrow">Almost there</p>
+        <h1 className="mt-2 font-display text-4xl font-medium sm:text-5xl">Checkout</h1>
+      </header>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
-        <div className="flex flex-col gap-8">
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_380px]">
+        <div className="flex flex-col gap-6 sm:gap-8">
           {!session && (
             <Section title="Contact Information" step={1}>
               <p className="mb-3 text-sm text-[var(--color-stone)]">
                 Checking out as a guest.{" "}
-                <button onClick={() => router.push("/login?callbackUrl=/checkout")} className="font-medium text-[var(--color-canopy)] hover:underline">
+                <button type="button" onClick={() => router.push("/login?callbackUrl=/checkout")} className="font-semibold text-[var(--color-canopy)] underline-offset-4 hover:underline">
                   Log in
                 </button>{" "}
                 for faster checkout next time.
@@ -195,13 +199,17 @@ export default function CheckoutPage() {
                 {addresses.map((addr) => (
                   <button
                     key={addr.id}
+                    type="button"
                     onClick={() => setSelectedAddressId(addr.id)}
+                    aria-pressed={selectedAddressId === addr.id}
                     className={cn(
-                      "flex items-start gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left",
-                      selectedAddressId === addr.id ? "border-[var(--color-canopy)] bg-[var(--color-canopy)]/5" : "border-[var(--color-border)]"
+                      "flex items-start gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left transition-[background-color,border-color,box-shadow]",
+                      selectedAddressId === addr.id
+                        ? "border-[var(--color-canopy)] bg-[var(--color-sage)] shadow-[var(--shadow-soft)]"
+                        : "border-[var(--color-border)] bg-white hover:border-[var(--color-border-strong)]"
                     )}
                   >
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-stone)]" />
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-canopy)]" aria-hidden="true" />
                     <span className="text-sm">
                       <span className="font-medium">{addr.fullName}</span> — {addr.phone}
                       <br />
@@ -210,8 +218,9 @@ export default function CheckoutPage() {
                   </button>
                 ))}
                 <button
+                  type="button"
                   onClick={() => setShowNewAddressForm(true)}
-                  className="flex items-center gap-2 self-start text-sm font-medium text-[var(--color-canopy)] hover:underline"
+                  className="flex items-center gap-2 self-start text-sm font-semibold text-[var(--color-canopy)] underline-offset-4 hover:underline"
                 >
                   <Plus className="h-4 w-4" /> Ship to a new address
                 </button>
@@ -222,8 +231,9 @@ export default function CheckoutPage() {
               <>
                 {addresses.length > 0 && (
                   <button
+                    type="button"
                     onClick={() => setShowNewAddressForm(false)}
-                    className="mb-3 text-sm font-medium text-[var(--color-canopy)] hover:underline"
+                    className="mb-3 text-sm font-semibold text-[var(--color-canopy)] underline-offset-4 hover:underline"
                   >
                     ← Use a saved address
                   </button>
@@ -237,7 +247,7 @@ export default function CheckoutPage() {
                   }}
                 />
                 {newAddress && (
-                  <p className="mt-2 text-xs font-medium text-[var(--color-success)]">
+                  <p role="status" className="mt-3 rounded-[var(--radius-sm)] bg-[var(--color-success-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--color-success)]">
                     ✓ Address ready — continue to payment below.
                   </p>
                 )}
@@ -250,7 +260,7 @@ export default function CheckoutPage() {
           </Section>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:sticky lg:top-28">
           <OrderSummary
             priced={priced}
             couponInput={couponCode}
@@ -260,7 +270,7 @@ export default function CheckoutPage() {
             footer={
               <div className="mt-5">
                 {placeError && (
-                  <p className="mb-3 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-xs font-medium text-[var(--color-error)]">
+                  <p role="alert" className="mb-3 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-xs font-medium text-[var(--color-error)]">
                     {placeError}
                   </p>
                 )}
@@ -273,8 +283,11 @@ export default function CheckoutPage() {
                 >
                   Place Order — {formatINR(priced.totalAmount)}
                 </Button>
-                <p className="mt-2.5 text-center text-xs text-[var(--color-stone)]">
-                  By placing your order, you agree to our Terms of Service and Privacy Policy.
+                <p className="mt-3 text-center text-xs text-[var(--color-stone)]">
+                  By placing your order, you agree to our{" "}
+                  <Link href="/terms" className="font-medium underline underline-offset-2 hover:text-[var(--color-canopy)]">Terms of Service</Link>{" "}
+                  and{" "}
+                  <Link href="/privacy-policy" className="font-medium underline underline-offset-2 hover:text-[var(--color-canopy)]">Privacy Policy</Link>.
                 </p>
               </div>
             }
@@ -287,9 +300,12 @@ export default function CheckoutPage() {
 
 function Section({ title, step, children }: { title: string; step: number; children: React.ReactNode }) {
   return (
-    <section className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
-      <h2 className="mb-4 flex items-center gap-2.5 font-display text-lg font-medium">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-canopy)] text-xs font-semibold text-white">
+    <section className="surface rounded-[var(--radius-lg)] p-5 sm:p-7">
+      <h2 className="mb-5 flex items-center gap-3 font-display text-xl font-medium">
+        <span
+          aria-hidden="true"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-canopy)] font-body text-sm font-bold text-white shadow-[0_6px_14px_-8px_rgba(28,51,20,0.7)]"
+        >
           {step}
         </span>
         {title}

@@ -38,15 +38,15 @@ export default function TrackOrderLookupPage() {
   return (
     <div className="container-page py-14 sm:py-20">
       <div className="mx-auto max-w-md text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-canopy)]/10">
-          <Search className="h-6 w-6 text-[var(--color-canopy)]" />
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-sage)] ring-8 ring-[var(--color-sage)]/60">
+          <Search className="h-6 w-6 text-[var(--color-canopy)]" aria-hidden />
         </div>
-        <h1 className="mt-4 font-display text-3xl font-medium">Track Your Order</h1>
+        <h1 className="mt-4 font-display text-3xl font-semibold">Track Your Order</h1>
         <p className="mt-2 text-[var(--color-stone)]">
           Enter your order number along with the email or phone number used at checkout.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4 text-left">
+        <form onSubmit={handleSubmit} className="glass-strong mt-8 flex flex-col gap-4 rounded-[var(--radius-lg)] p-6 text-left sm:p-8">
           <Input
             label="Order Number"
             placeholder="ADYA100482"
@@ -61,7 +61,7 @@ export default function TrackOrderLookupPage() {
             onChange={(e) => setContact(e.target.value)}
             required
           />
-          {error && <p className="text-sm font-medium text-[var(--color-error)]">{error}</p>}
+          {error && <p role="alert" className="text-sm font-medium text-[var(--color-error)]">{error}</p>}
           <Button type="submit" size="lg" isLoading={loading}>
             Track Order
           </Button>

@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import { formatINR, formatOrderNumber } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS } from "@/types";
+import { Printer } from "lucide-react";
 import { PrintButton } from "@/components/admin/print-button";
+import { AdminPageHeader, PANEL } from "@/components/admin/admin-ui";
+import { cn } from "@/lib/utils";
 
 export default async function PrintOrderBillsPage({
   searchParams,
@@ -21,16 +24,16 @@ export default async function PrintOrderBillsPage({
 
   return (
     <div className="a4-bills-page">
-      <div className="mb-5 flex items-center justify-between print-hidden">
-        <div>
-          <h1 className="font-display text-2xl font-medium">A4 Order Bills</h1>
-          <p className="text-sm text-[var(--color-stone)]">Print and cut each bill manually.</p>
-        </div>
-        <PrintButton />
-      </div>
+      <AdminPageHeader
+        className="mb-6 print-hidden"
+        icon={Printer}
+        title="A4 Order Bills"
+        description="Print and cut each bill manually."
+        actions={<PrintButton />}
+      />
 
       {orders.length === 0 ? (
-        <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white p-6 text-sm text-[var(--color-stone)] print-hidden">
+        <p className={cn(PANEL, "p-6 text-sm text-stone print-hidden")}>
           Select one or more orders from the Orders page first.
         </p>
       ) : (

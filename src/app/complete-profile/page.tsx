@@ -54,7 +54,7 @@ function CompleteProfileForm() {
       subtitle="Please add your phone number before continuing"
     >
       {serverError && (
-        <p className="mb-4 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">
+        <p role="alert" className="mb-4 rounded-[var(--radius-sm)] border border-error/25 bg-error-bg px-3.5 py-2.5 text-sm font-medium text-error">
           {serverError}
         </p>
       )}

@@ -96,7 +96,7 @@ export function WhatsAppOtpLogin({ callbackUrl }: { callbackUrl: string }) {
 
   return (
     <section aria-label="WhatsApp login" className="flex flex-col gap-3">
-      <p className="text-sm font-semibold text-[#173d2b]">Log in with WhatsApp</p>
+      <p className="text-sm font-semibold text-canopy-dark">Log in with WhatsApp</p>
       <Input
         label="Mobile Number"
         type="tel"

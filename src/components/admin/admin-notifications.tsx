@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck, ClipboardList, Mail, Package, UserPlus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Notification = {
   id: string;
@@ -49,8 +50,15 @@ export function AdminNotifications() {
     function close(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
     }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
     document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, []);
 
   async function markRead(notificationId: string) {
@@ -74,34 +82,56 @@ export function AdminNotifications() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    // `relative` only from sm up: on phones the panel anchors to the (sticky) top bar and spans its width,
+    // so it can never run off the left edge of a narrow screen.
+    <div ref={ref} className="sm:relative">
       <button
         type="button"
         aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ""}`}
         aria-expanded={open}
         onClick={() => { setOpen((value) => !value); if (!open) void loadNotifications(); }}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#e1e6e2] bg-white text-[#184a3a] transition hover:bg-[#f3f7f4] focus:outline-none focus:ring-2 focus:ring-[#69be28]/40"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[var(--glass-edge)] bg-white/80 text-ink transition-colors hover:bg-white"
       >
-        <Bell className="h-4.5 w-4.5" />
-        {unreadCount > 0 && <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#d64545] px-1 text-[9px] font-bold text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}
+        <Bell className="h-5 w-5" aria-hidden />
+        {unreadCount > 0 && <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[11px] font-bold leading-none text-white ring-2 ring-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-3 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#e3ebe2] bg-white shadow-[0_20px_45px_rgba(15,41,32,0.16)]">
-          <div className="flex items-center justify-between border-b border-[#edf2eb] px-4 py-3">
-            <div><h2 className="text-sm font-semibold text-[#173d2b]">Notifications</h2><p className="mt-0.5 text-[11px] text-[#849289]">{unreadCount ? `${unreadCount} unread` : "All caught up"}</p></div>
+        <div className="absolute inset-x-3 top-full z-50 mt-2 overflow-hidden rounded-[var(--radius-md)] border border-[var(--glass-edge)] bg-white/95 shadow-[var(--shadow-lifted)] animate-in fade-in slide-in-from-bottom-2 sm:inset-x-auto sm:right-0 sm:w-[380px]">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div><h2 className="text-sm font-semibold text-ink">Notifications</h2><p className="mt-0.5 text-xs text-stone">{unreadCount ? `${unreadCount} unread` : "All caught up"}</p></div>
             <div className="flex items-center gap-1">
-              {unreadCount > 0 && <button onClick={() => void markAllRead()} className="rounded-lg p-2 text-[#4f9c42] hover:bg-[#f1f8ee]" title="Mark all as read" aria-label="Mark all as read"><CheckCheck className="h-4 w-4" /></button>}
-              <button onClick={() => setOpen(false)} className="rounded-lg p-2 text-[#849289] hover:bg-[#f4f7f3]" aria-label="Close notifications"><X className="h-4 w-4" /></button>
+              {unreadCount > 0 && <button type="button" onClick={() => void markAllRead()} className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] text-canopy transition-colors hover:bg-sage sm:h-9 sm:w-9" title="Mark all as read" aria-label="Mark all as read"><CheckCheck className="h-4 w-4" aria-hidden /></button>}
+              <button type="button" onClick={() => setOpen(false)} className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] text-stone transition-colors hover:bg-sage sm:h-9 sm:w-9" aria-label="Close notifications"><X className="h-4 w-4" aria-hidden /></button>
             </div>
           </div>
           <div className="max-h-[360px] overflow-y-auto">
-            {loading && notifications.length === 0 && <p className="px-4 py-8 text-center text-xs text-[#849289]">Loading notifications…</p>}
-            {!loading && notifications.length === 0 && <p className="px-4 py-8 text-center text-xs text-[#849289]">No notifications yet.</p>}
+            {loading && notifications.length === 0 && <p className="px-4 py-8 text-center text-sm text-stone">Loading notifications…</p>}
+            {!loading && notifications.length === 0 && <p className="px-4 py-8 text-center text-sm text-stone">No notifications yet.</p>}
             {notifications.map((notification) => {
               const Icon = icons[notification.type] ?? Bell;
-              const content = <><span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${notification.readAt ? "bg-[#f3f6f2] text-[#8da091]" : "bg-[#eaf6e2] text-[#4f9c42]"}`}><Icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#315b45]">{notification.title}</span><span className="mt-0.5 block text-xs leading-5 text-[#6b7a70]">{notification.message}</span><span className="mt-1 block text-[10px] text-[#9aa79d]">{new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(notification.createdAt))}</span></span>{!notification.readAt && <i className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#69be28]" />}</>;
-              return notification.href ? <Link key={notification.id} href={notification.href} onClick={() => void markRead(notification.id)} className={`flex gap-3 border-b border-[#f0f4ef] px-4 py-3 transition hover:bg-[#fbfdf9] ${notification.readAt ? "" : "bg-[#fbfdf8]"}`}>{content}</Link> : <button key={notification.id} onClick={() => void markRead(notification.id)} className={`flex w-full gap-3 border-b border-[#f0f4ef] px-4 py-3 text-left transition hover:bg-[#fbfdf9] ${notification.readAt ? "" : "bg-[#fbfdf8]"}`}>{content}</button>;
+              const rowClass = cn(
+                "flex w-full gap-3 border-b border-border/70 px-4 py-3 text-left transition-colors hover:bg-sage/50",
+                !notification.readAt && "bg-sage/40"
+              );
+              const content = (
+                <>
+                  <span className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)]", notification.readAt ? "bg-parchment-deep text-stone" : "bg-sage-deep/70 text-canopy")}>
+                    <Icon className="h-4 w-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-ink">{notification.title}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-stone">{notification.message}</span>
+                    <span className="mt-1 block text-xs text-stone-light">{new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(notification.createdAt))}</span>
+                  </span>
+                  {!notification.readAt && <i aria-label="Unread" className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-leaf" />}
+                </>
+              );
+              return notification.href ? (
+                <Link key={notification.id} href={notification.href} onClick={() => void markRead(notification.id)} className={rowClass}>{content}</Link>
+              ) : (
+                <button key={notification.id} type="button" onClick={() => void markRead(notification.id)} className={rowClass}>{content}</button>
+              );
             })}
           </div>
         </div>

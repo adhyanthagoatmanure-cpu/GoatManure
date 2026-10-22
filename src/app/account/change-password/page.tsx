@@ -68,26 +68,27 @@ export default function ChangePasswordPage() {
 
   return (
     <Card className="max-w-md p-6 sm:p-8">
-      <h2 className="font-display text-xl font-medium">{hasPassword ? "Change Password" : "Set Password"}</h2>
+      <h2 className="font-display text-2xl font-semibold">{hasPassword ? "Change Password" : "Set Password"}</h2>
       {hasPassword === false && (
-        <p className="mt-2 text-sm text-[var(--color-stone)]">
+        <p className="mt-2 text-sm text-stone">
           Your account currently signs in with Google, Facebook, or your mobile number. Set a password to also sign in with your email and password.
         </p>
       )}
+      <p className="mt-1 text-sm text-stone">At least 8 characters, with one uppercase letter and one number.</p>
       {serverError && (
-        <p className="mt-4 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">
+        <p role="alert" className="mt-4 rounded-[var(--radius-sm)] border border-error/25 bg-error-bg px-3.5 py-2.5 text-sm font-medium text-error">
           {serverError}
         </p>
       )}
       {hasPassword === null ? (
-        !serverError && <p className="mt-5 text-sm text-[var(--color-stone)]">Loading password settings…</p>
+        !serverError && <p role="status" className="mt-5 text-sm text-stone">Loading password settings…</p>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="mt-5 flex flex-col gap-4">
           {hasPassword && (
-            <Input label="Current Password" type="password" {...register("currentPassword")} error={errors.currentPassword?.message} />
+            <Input label="Current Password" type="password" autoComplete="current-password" {...register("currentPassword")} error={errors.currentPassword?.message} />
           )}
-          <Input label="New Password" type="password" {...register("newPassword")} error={errors.newPassword?.message} />
-          <Input label="Confirm New Password" type="password" {...register("confirmPassword")} error={errors.confirmPassword?.message} />
+          <Input label="New Password" type="password" autoComplete="new-password" {...register("newPassword")} error={errors.newPassword?.message} />
+          <Input label="Confirm New Password" type="password" autoComplete="new-password" {...register("confirmPassword")} error={errors.confirmPassword?.message} />
           <Button type="submit" isLoading={isSubmitting} className="mt-1 self-start">
             {hasPassword ? "Update Password" : "Set Password"}
           </Button>

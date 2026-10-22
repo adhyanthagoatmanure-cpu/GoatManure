@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, ArrowLeft, AlertTriangle } from "lucide-react";
 import { useCart } from "@/components/providers/cart-provider";
@@ -11,7 +10,7 @@ import { CartLineItem } from "@/components/cart/cart-line-item";
 import { OrderSummary } from "@/components/cart/order-summary";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageSpinner } from "@/components/ui/spinner";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 
 export default function CartPage() {
   const { setQuantity, removeItem, isHydrated } = useCart();
@@ -64,17 +63,20 @@ export default function CartPage() {
 
   return (
     <div className="container-page py-8 sm:py-12">
-      <h1 className="font-display text-3xl font-medium sm:text-4xl">Your Cart</h1>
+      <header>
+        <p className="eyebrow">Shopping bag</p>
+        <h1 className="mt-2 font-display text-4xl font-medium sm:text-5xl">Your Cart</h1>
+      </header>
 
       {hasUnavailable && (
-        <div className="mt-5 flex items-start gap-2.5 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-4 py-3 text-sm text-[var(--color-error)]">
+        <div role="alert" className="mt-5 flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--color-error-bg)] px-4 py-3 text-sm font-medium text-[var(--color-error)]">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>Some items in your cart are no longer available and have been excluded from your total.</span>
         </div>
       )}
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 sm:px-6">
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_380px]">
+        <div className="surface rounded-[var(--radius-lg)] px-5 sm:px-7">
           {priced.lines.map((line) => (
             <CartLineItem
               key={line.variantId}
@@ -85,7 +87,7 @@ export default function CartPage() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:sticky lg:top-28">
           <OrderSummary
             priced={priced}
             couponInput={couponCode}
@@ -97,16 +99,14 @@ export default function CartPage() {
                 <Button size="lg" className="w-full" onClick={handleCheckout} disabled={hasStockIssues}>
                   Proceed to Checkout
                 </Button>
-                <Link href="/products">
-                  <Button size="lg" variant="ghost" className="w-full">
-                    <ArrowLeft className="h-4 w-4" /> Continue Shopping
-                  </Button>
-                </Link>
+                <ButtonLink href="/products" size="lg" variant="ghost" className="w-full">
+                  <ArrowLeft className="h-4 w-4" aria-hidden /> Continue Shopping
+                </ButtonLink>
               </div>
             }
           />
           {hasStockIssues && (
-            <p className="rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-4 py-3 text-xs font-medium text-[var(--color-error)]">
+            <p role="alert" className="rounded-[var(--radius-md)] bg-[var(--color-error-bg)] px-4 py-3 text-xs font-medium text-[var(--color-error)]">
               Reduce the quantity on the highlighted item(s) above — we don&apos;t have enough stock to fulfill your current cart.
             </p>
           )}

@@ -127,3 +127,11 @@ export async function getRelatedProducts(productId: string, categoryId: string |
 export async function getCategories() {
   return prisma.category.findMany({ orderBy: { name: "asc" } });
 }
+
+/** Read-only: categories plus how many ACTIVE products each holds (homepage category section). */
+export async function getCategoriesWithProductCount() {
+  return prisma.category.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { products: { where: { status: "ACTIVE" } } } } },
+  });
+}

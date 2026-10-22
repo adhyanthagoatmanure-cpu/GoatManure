@@ -46,10 +46,10 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <AuthShell title="Invalid Link">
-        <p className="text-center text-sm text-[var(--color-stone)]">
+        <p className="text-center text-sm leading-6 text-stone">
           This password reset link is missing its token. Please request a new one.
         </p>
-        <Link href="/forgot-password" className="mt-5 block text-center text-sm font-medium text-[var(--color-canopy)] hover:underline">
+        <Link href="/forgot-password" className="mt-5 flex min-h-11 items-center justify-center text-sm font-semibold text-canopy underline-offset-4 hover:underline">
           Request New Link
         </Link>
       </AuthShell>
@@ -60,8 +60,10 @@ function ResetPasswordForm() {
     return (
       <AuthShell title="Password Reset">
         <div className="text-center">
-          <CheckCircle2 className="mx-auto h-10 w-10 text-[var(--color-success)]" />
-          <p className="mt-3 text-sm text-[var(--color-stone)]">Redirecting you to login…</p>
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-bg ring-8 ring-success-bg/60">
+            <CheckCircle2 className="h-8 w-8 text-success" aria-hidden />
+          </span>
+          <p role="status" className="mt-4 text-sm text-stone">Redirecting you to login…</p>
         </div>
       </AuthShell>
     );
@@ -70,14 +72,14 @@ function ResetPasswordForm() {
   return (
     <AuthShell title="Set a New Password">
       {serverError && (
-        <p className="mb-4 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">
+        <p role="alert" className="mb-4 rounded-[var(--radius-sm)] border border-error/25 bg-error-bg px-3.5 py-2.5 text-sm font-medium text-error">
           {serverError}
         </p>
       )}
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <input type="hidden" {...register("token")} />
-        <Input label="New Password" type="password" {...register("password")} error={errors.password?.message} />
-        <Input label="Confirm New Password" type="password" {...register("confirmPassword")} error={errors.confirmPassword?.message} />
+        <Input label="New Password" type="password" autoComplete="new-password" {...register("password")} error={errors.password?.message} />
+        <Input label="Confirm New Password" type="password" autoComplete="new-password" {...register("confirmPassword")} error={errors.confirmPassword?.message} />
         <Button type="submit" size="lg" isLoading={isSubmitting}>
           Reset Password
         </Button>

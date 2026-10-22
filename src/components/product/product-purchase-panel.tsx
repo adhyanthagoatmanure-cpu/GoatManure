@@ -9,6 +9,7 @@ import { QuantitySelector } from "@/components/ui/quantity-selector";
 import { DiscountBadge } from "@/components/ui/badge";
 import { useCart } from "@/components/providers/cart-provider";
 import { useToast } from "@/components/providers/toast-provider";
+import { SHIPPING_CONFIG } from "@/lib/config";
 import { formatINR, cn } from "@/lib/utils";
 import type { ProductVariant } from "@prisma/client";
 
@@ -72,9 +73,9 @@ export function ProductPurchasePanel({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="glass flex flex-col gap-6 rounded-[var(--radius-xl)] p-5 sm:p-7">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-display text-3xl font-semibold">{formatINR(selected.offerPrice)}</span>
+        <span className="font-display text-4xl font-semibold text-[var(--color-canopy-dark)]">{formatINR(selected.offerPrice)}</span>
         {selected.originalPrice > selected.offerPrice && (
           <span className="text-lg text-[var(--color-stone)] line-through">
             {formatINR(selected.originalPrice)}
@@ -84,20 +85,21 @@ export function ProductPurchasePanel({
       </div>
 
       <div>
-        <p className="mb-2.5 text-sm font-medium text-[var(--color-ink)]">
-          Weight: <span className="text-[var(--color-stone)]">{selected.weightLabel}</span>
+        <p className="mb-2.5 text-sm font-semibold text-[var(--color-ink)]">
+          Weight: <span className="font-medium text-[var(--color-stone)]">{selected.weightLabel}</span>
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Choose weight">
           {sorted.map((v) => (
             <button
               key={v.id}
               onClick={() => setSelectedId(v.id)}
               disabled={v.stock <= 0}
+              aria-pressed={selectedId === v.id}
               className={cn(
-                "rounded-[var(--radius-sm)] border px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                "h-11 min-w-16 rounded-full border px-4 text-sm font-semibold transition-[background-color,border-color,color,box-shadow] disabled:cursor-not-allowed disabled:opacity-45",
                 selectedId === v.id
-                  ? "border-[var(--color-canopy)] bg-[var(--color-canopy)] text-white"
-                  : "border-[var(--color-border-strong)] text-[var(--color-ink)] hover:border-[var(--color-canopy)]"
+                  ? "border-[var(--color-canopy)] bg-[var(--color-canopy)] text-white shadow-[0_6px_14px_-8px_rgba(28,51,20,0.7)]"
+                  : "border-[var(--color-border-strong)] bg-white/80 text-[var(--color-ink)] hover:border-[var(--color-canopy-light)] hover:bg-[var(--color-sage)]"
               )}
             >
               {v.weightLabel}
@@ -108,17 +110,17 @@ export function ProductPurchasePanel({
       </div>
 
       {outOfStock ? (
-        <p className="text-sm font-medium text-[var(--color-error)]">
+        <p role="status" className="rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-error)]">
           This weight is currently out of stock. Try another size above.
         </p>
       ) : lowStock ? (
-        <p className="text-sm font-medium text-[var(--color-warning)]">
+        <p role="status" className="rounded-[var(--radius-sm)] bg-[var(--color-warning-bg)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-warning)]">
           Only {selected.stock} left in stock — order soon.
         </p>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-4">
-        <p className="text-sm font-medium">Quantity</p>
+        <p className="text-sm font-semibold">Quantity</p>
         <QuantitySelector value={quantity} onChange={setQuantity} max={Math.min(20, selected.stock || 20)} />
       </div>
 
@@ -147,15 +149,15 @@ export function ProductPurchasePanel({
         </Button>
       </div>
 
-      <ul className="flex flex-col gap-2 border-t border-[var(--color-border)] pt-5 text-sm text-[var(--color-stone)]">
+      <ul className="flex flex-col gap-2 border-t border-[var(--glass-edge)] pt-5 text-sm text-[var(--color-stone)]">
         <li className="flex items-center gap-2">
-          <Check className="h-4 w-4 text-[var(--color-canopy)]" /> 100% organic, chemical-free
+          <Check className="h-4 w-4 text-[var(--color-leaf)]" aria-hidden="true" /> 100% organic, chemical-free
         </li>
         <li className="flex items-center gap-2">
-          <Check className="h-4 w-4 text-[var(--color-canopy)]" /> Cash on Delivery available
+          <Check className="h-4 w-4 text-[var(--color-leaf)]" aria-hidden="true" /> Cash on Delivery available
         </li>
         <li className="flex items-center gap-2">
-          <Check className="h-4 w-4 text-[var(--color-canopy)]" /> Free shipping above ₹499
+          <Check className="h-4 w-4 text-[var(--color-leaf)]" aria-hidden="true" /> Free shipping above {formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}
         </li>
       </ul>
     </div>

@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   description: "Guides on organic gardening, soil health, and getting the most out of goat manure fertilizer.",
 };
 
+const CHIP =
+  "inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors sm:min-h-10";
+const CHIP_IDLE = "border-border-strong bg-white/70 text-ink hover:border-canopy-light hover:bg-sage";
+const CHIP_ACTIVE = "border-canopy bg-canopy text-white shadow-[0_8px_18px_-10px_rgba(28,51,20,0.7)]";
+
 export default async function BlogPage({
   searchParams,
 }: {
@@ -41,21 +46,20 @@ export default async function BlogPage({
 
   return (
     <div className="container-page py-10 sm:py-14">
-      <div className="mb-8 max-w-xl">
-        <h1 className="font-display text-3xl font-medium sm:text-4xl">The Garden Journal</h1>
-        <p className="mt-2 text-[var(--color-stone)]">
+      <header className="mb-8 max-w-xl sm:mb-10">
+        <p className="eyebrow">Tips, guides &amp; stories</p>
+        <h1 className="mt-2 font-display text-4xl font-medium sm:text-5xl">The Garden Journal</h1>
+        <p className="mt-3 text-stone">
           Practical tips, stories, and guides on organic gardening and soil health.
         </p>
-      </div>
+      </header>
 
       {categoryList.length > 0 && (
-        <div className="mb-8 flex flex-wrap gap-2">
+        <nav aria-label="Article categories" className="mb-8 flex flex-wrap gap-2">
           <Link
             href="/blog"
-            className={cn(
-              "rounded-full border px-3.5 py-1.5 text-sm font-medium",
-              !category ? "border-[var(--color-canopy)] bg-[var(--color-canopy)] text-white" : "border-[var(--color-border-strong)]"
-            )}
+            aria-current={!category ? "page" : undefined}
+            className={cn(CHIP, !category ? CHIP_ACTIVE : CHIP_IDLE)}
           >
             All
           </Link>
@@ -63,15 +67,13 @@ export default async function BlogPage({
             <Link
               key={c}
               href={`/blog?category=${encodeURIComponent(c)}`}
-              className={cn(
-                "rounded-full border px-3.5 py-1.5 text-sm font-medium",
-                category === c ? "border-[var(--color-canopy)] bg-[var(--color-canopy)] text-white" : "border-[var(--color-border-strong)]"
-              )}
+              aria-current={category === c ? "page" : undefined}
+              className={cn(CHIP, category === c ? CHIP_ACTIVE : CHIP_IDLE)}
             >
               {c}
             </Link>
           ))}
-        </div>
+        </nav>
       )}
 
       {posts.length === 0 ? (

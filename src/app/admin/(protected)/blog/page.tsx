@@ -8,10 +8,13 @@ import {
   Pencil, Plus, Search, Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { PageSpinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/providers/toast-provider";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
+import {
+  AdminPageHeader, FIELD, ICON_BUTTON, ICON_BUTTON_DANGER, PANEL,
+} from "@/components/admin/admin-ui";
 
 type Post = {
   id: string;
@@ -112,52 +115,159 @@ export default function AdminBlogPage() {
   if (!posts) return <PageSpinner />;
 
   return (
-    <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
       {loadError && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f0c8c5] bg-[#fff7f6] px-4 py-3 text-sm text-[#a94442]">
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-error/30 bg-error-bg px-4 py-3 text-sm text-error">
           <span>{loadError}</span>
           <Button type="button" size="sm" variant="outline" onClick={() => { setPosts(null); void load(); }}>Retry</Button>
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf6e2] text-[#4f9c42]"><Leaf className="h-5 w-5" /></span>
-          <div><h1 className="font-display text-2xl font-semibold text-[#173d2b]">Our Blog</h1><p className="text-xs text-[#6b7a70]">Learn, grow and stay updated with natural farming tips.</p></div>
-        </div>
-        <Link href="/admin/blog/new"><Button><Plus className="h-4 w-4" /> Add New Blog</Button></Link>
-      </div>
+      <AdminPageHeader
+        icon={Leaf}
+        title="Our Blog"
+        description="Learn, grow and stay updated with natural farming tips."
+        actions={
+          <ButtonLink href="/admin/blog/new">
+            <Plus className="h-4 w-4" aria-hidden /> Add New Blog
+          </ButtonLink>
+        }
+      />
 
-      <form onSubmit={applyFilters} className="flex flex-wrap items-center gap-2 rounded-xl border border-[#e3ebe2] bg-white p-3 shadow-[0_6px_18px_rgba(20,67,43,0.04)]">
-        <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-[#dfe9df] bg-[#fbfdf9] px-3 py-2"><Search className="h-4 w-4 text-[#849289]" /><span className="sr-only">Search blog title or content</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search blog title or content..." className="w-full bg-transparent text-xs outline-none" /></label>
-        <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} className="rounded-lg border border-[#dfe9df] bg-white px-3 py-2 text-xs text-[#315b45] outline-none"><option>All Categories</option>{categories.filter((item) => item !== "All Categories").map((item) => <option key={item}>{item}</option>)}</select>
-        <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="rounded-lg border border-[#dfe9df] bg-white px-3 py-2 text-xs text-[#315b45] outline-none"><option>All Status</option><option value="PUBLISHED">Published</option><option value="DRAFT">Draft</option></select>
-        <Button type="submit" size="sm"><Search className="h-3.5 w-3.5" /> Search</Button>
+      <form onSubmit={applyFilters} className={cn(PANEL, "flex flex-wrap items-center gap-2 p-3")}>
+        <label className="flex h-11 min-w-[220px] flex-1 items-center gap-2 rounded-[var(--radius-sm)] border border-field-border bg-white/90 px-3 transition-[border-color,box-shadow] focus-within:border-canopy focus-within:ring-4 focus-within:ring-canopy/15">
+          <Search className="h-4 w-4 shrink-0 text-stone" aria-hidden />
+          <span className="sr-only">Search blog title or content</span>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search blog title or content..." className="w-full bg-transparent text-sm text-ink placeholder:text-stone-light focus:outline-none" />
+        </label>
+        <select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }} aria-label="Filter by category" className={cn(FIELD, "sm:w-auto")}>
+          <option>All Categories</option>
+          {categories.filter((item) => item !== "All Categories").map((item) => <option key={item}>{item}</option>)}
+        </select>
+        <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} aria-label="Filter by status" className={cn(FIELD, "sm:w-auto")}>
+          <option>All Status</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="DRAFT">Draft</option>
+        </select>
+        <Button type="submit"><Search className="h-4 w-4" aria-hidden /> Search</Button>
       </form>
 
       <div className="flex flex-wrap gap-2">
-        {categoryPills.map((item) => <button key={item} type="button" onClick={() => { setCategory(item); setPage(1); }} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${category === item ? "border-[#4f9c42] bg-[#4f9c42] text-white" : "border-[#dfe9df] bg-white text-[#52695b] hover:border-[#69a653]"}`}>{item}</button>)}
+        {categoryPills.map((item) => (
+          <button
+            key={item}
+            type="button"
+            aria-pressed={category === item}
+            onClick={() => { setCategory(item); setPage(1); }}
+            className={cn(
+              "min-h-10 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+              category === item
+                ? "border-canopy bg-canopy text-white"
+                : "border-border-strong bg-white/80 text-stone hover:border-canopy-light hover:bg-sage hover:text-canopy-dark"
+            )}
+          >
+            {item}
+          </button>
+        ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
         <section className="min-w-0">
-          <div className="mb-2 flex items-center justify-between"><h2 className="font-display text-lg font-semibold text-[#173d2b]">All Articles</h2><span className="text-xs text-[#849289]">{filtered.length} results</span></div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold text-ink">All Articles</h2>
+            <span className="text-xs text-stone">{filtered.length} results</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {visiblePosts.map((post, index) => {
               const image = post.featuredImage || fallbackImages[(page * pageSize + index) % fallbackImages.length];
-              return <article key={post.id} className="overflow-hidden rounded-xl border border-[#e3ebe2] bg-white shadow-[0_6px_18px_rgba(20,67,43,0.05)]">
-                <div className="relative aspect-[1.55] bg-[#eef6eb]"><Image src={image} alt={post.title} fill sizes="(max-width: 1024px) 50vw, 220px" className="object-cover" /></div>
-                <div className="p-3"><div className="flex items-center justify-between gap-2"><Badge tone={post.status === "PUBLISHED" ? "success" : "neutral"}>{post.category ?? "Uncategorized"}</Badge><span className="text-[10px] text-[#849289]">{post.status}</span></div><h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-[#315b45]">{post.title}</h3><p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#718177]">{post.excerpt}</p><div className="mt-3 flex items-center gap-2 text-[10px] text-[#849289]"><CalendarDays className="h-3 w-3" />{formatDate(post.publishedAt ?? post.createdAt)}<span>•</span>{readingTime(post.content)} min read</div><div className="mt-3 flex items-center justify-between"><Link href={`/blog/${post.slug}`} className="text-xs font-semibold text-[#4f9c42] hover:underline">Read More <ArrowRight className="inline h-3 w-3" /></Link><div className="flex gap-2"><Link href={`/admin/blog/${post.id}`} aria-label={`Edit ${post.title}`} className="text-[#4f9c42]"><Pencil className="h-3.5 w-3.5" /></Link><button type="button" onClick={() => void handleDelete(post)} aria-label={`Delete ${post.title}`} className="text-[#d05c55]"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div>
-              </article>;
+              return (
+                <article key={post.id} className={cn(PANEL, "flex flex-col overflow-hidden")}>
+                  <div className="relative aspect-[1.55] bg-sage">
+                    <Image src={image} alt={post.title} fill sizes="(max-width: 1024px) 50vw, 220px" className="object-cover" />
+                  </div>
+                  <div className="flex flex-1 flex-col p-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge tone={post.status === "PUBLISHED" ? "success" : "neutral"}>{post.category ?? "Uncategorized"}</Badge>
+                      <span className="text-xs text-stone">{post.status}</span>
+                    </div>
+                    <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-5 text-ink">{post.title}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-stone">{post.excerpt}</p>
+                    <div className="mt-3 flex items-center gap-2 text-xs text-stone">
+                      <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+                      {formatDate(post.publishedAt ?? post.createdAt)}
+                      <span aria-hidden>•</span>
+                      {readingTime(post.content)} min read
+                    </div>
+                    <div className="mt-auto flex items-center justify-between pt-3">
+                      <Link href={`/blog/${post.slug}`} className="text-xs font-semibold text-canopy underline-offset-4 hover:underline">
+                        Read More <ArrowRight className="inline h-3 w-3" aria-hidden />
+                      </Link>
+                      <div className="flex gap-1">
+                        <Link href={`/admin/blog/${post.id}`} aria-label={`Edit ${post.title}`} className={ICON_BUTTON}>
+                          <Pencil className="h-4 w-4" aria-hidden />
+                        </Link>
+                        <button type="button" onClick={() => void handleDelete(post)} aria-label={`Delete ${post.title}`} className={ICON_BUTTON_DANGER}>
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
             })}
           </div>
-          {visiblePosts.length === 0 && <div className="rounded-xl border border-dashed border-[#cbdcc8] bg-white p-10 text-center text-sm text-[#718177]">No blog posts match these filters.</div>}
-          <div className="mt-4 flex items-center justify-between text-xs text-[#849289]"><span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filtered.length)} of {filtered.length} blogs</span><div className="flex items-center gap-1"><button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="rounded-md p-1.5 hover:bg-[#edf8e7] disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button><span className="rounded-md bg-[#4f9c42] px-2 py-1 text-white">{page}</span><button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} className="rounded-md p-1.5 hover:bg-[#edf8e7] disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button></div></div>
+          {visiblePosts.length === 0 && (
+            <div className="rounded-[var(--radius-md)] border border-dashed border-border-strong bg-white/70 p-10 text-center text-sm text-stone">No blog posts match these filters.</div>
+          )}
+          <div className="mt-4 flex items-center justify-between gap-3 text-xs text-stone">
+            <span>Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filtered.length)} of {filtered.length} blogs</span>
+            <nav aria-label="Blog pagination" className="flex items-center gap-1">
+              <button type="button" disabled={page === 1} onClick={() => setPage((current) => current - 1)} aria-label="Previous page" className={cn(ICON_BUTTON, "disabled:opacity-40")}><ChevronLeft className="h-4 w-4" aria-hidden /></button>
+              <span className="rounded-md bg-canopy px-2.5 py-1 font-semibold text-white" aria-current="page">{page}</span>
+              <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} aria-label="Next page" className={cn(ICON_BUTTON, "disabled:opacity-40")}><ChevronRight className="h-4 w-4" aria-hidden /></button>
+            </nav>
+          </div>
         </section>
 
-        <aside className="flex flex-col gap-4">
-          <section className="rounded-xl border border-[#e3ebe2] bg-white p-4 shadow-[0_6px_18px_rgba(20,67,43,0.05)]"><div className="flex items-center justify-between"><h2 className="font-display text-base font-semibold text-[#173d2b]">Popular Posts</h2><Link href="/blog" className="text-[10px] font-semibold text-[#4f9c42]">View All →</Link></div><div className="mt-3 space-y-3">{popularPosts.map((post, index) => <Link key={post.id} href={`/blog/${post.slug}`} className="flex gap-2.5 border-b border-[#edf2eb] pb-3 last:border-0 last:pb-0"><div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-lg bg-[#edf8e7]"><Image src={post.featuredImage || fallbackImages[index % fallbackImages.length]} alt="" fill sizes="56px" className="object-cover" /></div><div className="min-w-0"><p className="line-clamp-2 text-xs font-semibold leading-4 text-[#315b45]">{post.title}</p><p className="mt-1 text-[10px] text-[#849289]">{formatDate(post.publishedAt ?? post.createdAt)} · {post.status.toLowerCase()}</p></div></Link>)}</div></section>
-          <section className="relative min-h-[145px] overflow-hidden rounded-xl bg-[#0b4d2c] p-4 text-white"><Image src="/images/05_seedling_fertile_soil.jpg" alt="" fill sizes="280px" className="object-cover opacity-35" /><div className="relative z-10"><p className="text-[10px] uppercase tracking-[0.2em] text-[#bde7a5]">ADHYANTHA</p><h2 className="mt-2 font-display text-2xl font-semibold leading-tight">Better Soil<br />Better Tomorrow</h2><Link href="/products" className="mt-3 inline-flex items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1.5 text-[10px] font-semibold text-white">Explore Products <ArrowRight className="h-3 w-3" /></Link></div><div className="absolute inset-0 bg-gradient-to-r from-[#0b4d2c] via-[#0b4d2c]/70 to-transparent" /></section>
-          <section className="rounded-xl border border-[#e3ebe2] bg-white p-4 shadow-[0_6px_18px_rgba(20,67,43,0.05)]"><div className="flex items-center justify-between"><h2 className="font-display text-base font-semibold text-[#173d2b]">Recent Comments</h2><span className="text-[10px] text-[#849289]">View All →</span></div><div className="mt-4 flex flex-col items-center gap-2 py-4 text-center text-xs text-[#849289]"><MessageCircle className="h-6 w-6 text-[#a9c6a1]" /><p>Blog comments are not available in the current database.</p></div></section>
+        <aside className="flex flex-col gap-5">
+          <section className={cn(PANEL, "p-4")}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-semibold text-ink">Popular Posts</h2>
+              <Link href="/blog" className="text-xs font-semibold text-canopy underline-offset-4 hover:underline">View All →</Link>
+            </div>
+            <div className="mt-3 space-y-3">
+              {popularPosts.map((post, index) => (
+                <Link key={post.id} href={`/blog/${post.slug}`} className="flex gap-3 border-b border-border pb-3 last:border-0 last:pb-0">
+                  <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-sage">
+                    <Image src={post.featuredImage || fallbackImages[index % fallbackImages.length]} alt="" fill sizes="56px" className="object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="line-clamp-2 text-xs font-semibold leading-4 text-ink">{post.title}</p>
+                    <p className="mt-1 text-xs text-stone">{formatDate(post.publishedAt ?? post.createdAt)} · {post.status.toLowerCase()}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+          <section className="relative isolate min-h-[160px] overflow-hidden rounded-[var(--radius-md)] bg-canopy-dark p-4 text-white shadow-[var(--shadow-soft)]">
+            <Image src="/images/05_seedling_fertile_soil.jpg" alt="" fill sizes="300px" className="object-cover opacity-35" />
+            <div className="absolute inset-0 bg-gradient-to-r from-canopy-dark via-canopy-dark/70 to-transparent" />
+            <div className="relative z-10">
+              <p className="text-xs uppercase tracking-[0.2em] text-sage-deep">ADHYANTHA</p>
+              <h2 className="mt-2 font-display text-2xl font-semibold leading-tight text-white">Better Soil<br />Better Tomorrow</h2>
+              <Link href="/products" data-on-dark className="mt-3 inline-flex min-h-10 items-center gap-1 rounded-[var(--radius-sm)] bg-white/15 px-3 text-xs font-semibold text-white transition-colors hover:bg-white/25">
+                Explore Products <ArrowRight className="h-3 w-3" aria-hidden />
+              </Link>
+            </div>
+          </section>
+          <section className={cn(PANEL, "p-4")}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-semibold text-ink">Recent Comments</h2>
+            </div>
+            <div className="mt-3 flex flex-col items-center gap-2 py-4 text-center text-xs text-stone">
+              <MessageCircle className="h-6 w-6 text-stone-light" aria-hidden />
+              <p>Blog comments are not available in the current database.</p>
+            </div>
+          </section>
         </aside>
       </div>
     </div>

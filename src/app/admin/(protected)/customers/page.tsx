@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Download, FileSpreadsheet, FileText, Search } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Search, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageSpinner } from "@/components/ui/spinner";
 import { formatDate, formatINR } from "@/lib/utils";
+import { AdminPageHeader, EmptyNote, TABLE_HEAD, TBODY, TD, TH, TR, TableShell } from "@/components/admin/admin-ui";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
@@ -120,69 +121,80 @@ export default function AdminCustomersPage() {
   if (customers === null) return <PageSpinner />;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-medium">Customers</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={downloadExcel} disabled={exporting !== null}>
-            <FileSpreadsheet className="h-4 w-4" />
-            {exporting === "excel" ? "Preparing Excel…" : "Download Excel"}
-            {exporting === "excel" && <Download className="h-3.5 w-3.5" />}
-          </Button>
-          <Button type="button" size="sm" variant="outline" onClick={downloadPdf} disabled={exporting !== null}>
-            <FileText className="h-4 w-4" />
-            {exporting === "pdf" ? "Preparing PDF…" : "Download PDF"}
-            {exporting === "pdf" && <Download className="h-3.5 w-3.5" />}
-          </Button>
-        </div>
-      </div>
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
+      <AdminPageHeader
+        icon={Users}
+        title="Customers"
+        description="Registered customers and their order history."
+        actions={
+          <>
+            <Button type="button" size="sm" variant="outline" onClick={downloadExcel} disabled={exporting !== null} className="max-sm:h-11">
+              <FileSpreadsheet className="h-4 w-4" aria-hidden />
+              {exporting === "excel" ? "Preparing Excel…" : "Download Excel"}
+              {exporting === "excel" && <Download className="h-3.5 w-3.5" aria-hidden />}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={downloadPdf} disabled={exporting !== null} className="max-sm:h-11">
+              <FileText className="h-4 w-4" aria-hidden />
+              {exporting === "pdf" ? "Preparing PDF…" : "Download PDF"}
+              {exporting === "pdf" && <Download className="h-3.5 w-3.5" aria-hidden />}
+            </Button>
+          </>
+        }
+      />
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
           load(query);
         }}
-        className="flex max-w-sm items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] bg-white px-3.5 py-2"
+        className="flex h-11 max-w-sm items-center gap-2 rounded-[var(--radius-sm)] border border-field-border bg-white/90 px-3.5 transition-[border-color,box-shadow] focus-within:border-canopy focus-within:ring-4 focus-within:ring-canopy/15"
       >
-        <Search className="h-4 w-4 text-[var(--color-stone)]" />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customers…" className="w-full text-sm focus:outline-none" />
+        <Search className="h-4 w-4 shrink-0 text-stone" aria-hidden />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search customers…"
+          aria-label="Search customers"
+          className="w-full bg-transparent text-sm text-ink placeholder:text-stone-light focus:outline-none"
+        />
       </form>
 
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <table className="w-full text-sm">
-          <thead className="border-b border-[var(--color-border)] bg-[var(--color-parchment-deep)]/50 text-left text-xs uppercase tracking-wide text-[var(--color-stone)]">
+      <TableShell>
+        <table className="w-full min-w-[760px] text-sm">
+          <caption className="sr-only">Customers</caption>
+          <thead className={TABLE_HEAD}>
             <tr>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3">Registered</th>
-              <th className="px-4 py-3">Orders</th>
-              <th className="px-4 py-3">Total Spent</th>
-              <th className="px-4 py-3">Status</th>
+              <th scope="col" className={TH}>Customer</th>
+              <th scope="col" className={TH}>Email</th>
+              <th scope="col" className={TH}>Phone</th>
+              <th scope="col" className={TH}>Registered</th>
+              <th scope="col" className={TH}>Orders</th>
+              <th scope="col" className={TH}>Total Spent</th>
+              <th scope="col" className={TH}>Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-border)]">
+          <tbody className={TBODY}>
             {customers.map((c) => (
-              <tr key={c.id}>
-                <td className="px-4 py-3 font-medium">
-                  <Link href={`/admin/customers/${c.id}`} className="text-[var(--color-canopy)] hover:underline">
+              <tr key={c.id} className={TR}>
+                <td className={`${TD} font-medium`}>
+                  <Link href={`/admin/customers/${c.id}`} className="text-canopy underline-offset-4 hover:underline">
                     {c.name ?? "—"}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-[var(--color-stone)]">{c.email}</td>
-                <td className="px-4 py-3 text-[var(--color-stone)]">{c.phone ?? "—"}</td>
-                <td className="px-4 py-3 text-[var(--color-stone)]">{formatDate(c.createdAt)}</td>
-                <td className="px-4 py-3">{c.totalOrders}</td>
-                <td className="px-4 py-3 font-medium">{formatINR(c.totalSpent)}</td>
-                <td className="px-4 py-3">
+                <td className={`${TD} text-stone`}>{c.email}</td>
+                <td className={`${TD} text-stone`}>{c.phone ?? "—"}</td>
+                <td className={`${TD} text-stone`}>{formatDate(c.createdAt)}</td>
+                <td className={`${TD} text-ink`}>{c.totalOrders}</td>
+                <td className={`${TD} font-medium text-ink`}>{formatINR(c.totalSpent)}</td>
+                <td className={TD}>
                   <Badge tone={c.status === "ACTIVE" ? "success" : "error"}>{c.status}</Badge>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {customers.length === 0 && <p className="p-8 text-center text-sm text-[var(--color-stone)]">No customers yet.</p>}
-      </div>
+        {customers.length === 0 && <EmptyNote>No customers yet.</EmptyNote>}
+      </TableShell>
     </div>
   );
 }

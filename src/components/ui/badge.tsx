@@ -7,7 +7,7 @@ const toneClasses: Record<StatusTone, string> = {
   success: "bg-[var(--color-success-bg)] text-[var(--color-success)]",
   warning: "bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
   error: "bg-[var(--color-error-bg)] text-[var(--color-error)]",
-  info: "bg-[var(--color-canopy)]/10 text-[var(--color-canopy)]",
+  info: "bg-[var(--color-sage)] text-[var(--color-canopy)]",
 };
 
 export function Badge({
@@ -22,7 +22,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold",
         toneClasses[tone],
         className
       )}
@@ -37,7 +37,7 @@ export function DiscountBadge({ original, offer }: { original: number; offer: nu
   if (original <= offer) return null;
   const pct = Math.round(((original - offer) / original) * 100);
   return (
-    <span className="inline-flex items-center rounded-full bg-[var(--color-gold)] px-2.5 py-1 text-xs font-semibold text-[var(--color-ink)]">
+    <span className="inline-flex items-center rounded-full bg-[var(--color-gold)] px-2.5 py-1 text-xs font-bold text-[var(--color-ink)] shadow-[0_4px_10px_-4px_rgba(138,106,10,0.6)]">
       {pct}% OFF
     </span>
   );

@@ -12,7 +12,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-[var(--color-ink)]">
+          <label htmlFor={inputId} className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">
             {label}
           </label>
         )}
@@ -20,16 +20,21 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            "w-full rounded-[var(--radius-sm)] border bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-ink)]",
-            "placeholder:text-[var(--color-stone-light)] transition-colors min-h-[110px] resize-y",
-            "focus:outline-none focus:ring-2 focus:ring-[var(--color-canopy)]/30 focus:border-[var(--color-canopy)]",
-            error ? "border-[var(--color-error)]" : "border-[var(--color-border-strong)]",
+            "w-full rounded-[var(--radius-sm)] border bg-white/90 px-3.5 py-2.5 text-sm text-[var(--color-ink)]",
+            "placeholder:text-[var(--color-stone-light)] transition-[border-color,box-shadow,background-color] min-h-[110px] resize-y",
+            "focus:outline-none focus:bg-white focus:ring-4 focus:ring-[var(--color-canopy)]/15 focus:border-[var(--color-canopy)]",
+            error ? "border-[var(--color-error)]" : "border-[var(--color-field-border)]",
             className
           )}
           aria-invalid={Boolean(error)}
+          aria-describedby={error && inputId ? `${inputId}-error` : undefined}
           {...props}
         />
-        {error && <p className="mt-1.5 text-xs text-[var(--color-error)]">{error}</p>}
+        {error && (
+          <p id={inputId ? `${inputId}-error` : undefined} role="alert" className="mt-1.5 text-xs font-medium text-[var(--color-error)]">
+            {error}
+          </p>
+        )}
       </div>
     );
   }

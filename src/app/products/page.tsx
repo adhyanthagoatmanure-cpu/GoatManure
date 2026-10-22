@@ -42,12 +42,13 @@ export default async function ProductsPage({
 
   return (
     <div className="container-page py-10 sm:py-14">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-medium sm:text-4xl">Shop All Products</h1>
-        <p className="mt-2 text-[var(--color-stone)]">
+      <header className="mb-8 sm:mb-10">
+        <p className="eyebrow">Our range</p>
+        <h1 className="mt-2 font-display text-4xl font-medium sm:text-5xl">Shop All Products</h1>
+        <p className="mt-3 max-w-xl text-[var(--color-stone)]">
           Organic, natural, and sustainably packed — for every garden size.
         </p>
-      </div>
+      </header>
 
       <ProductFilters categories={categories} />
 

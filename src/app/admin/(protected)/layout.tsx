@@ -15,18 +15,21 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9f5] text-[#183c2d]">
+    // No opaque page colour here: the soft green/gold colour field from globals.css shows through,
+    // which is what the frosted header and summary cards blur.
+    <div className="min-h-screen text-ink">
       <div className="flex min-h-screen">
         <AdminSidebar />
 
         <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:h-screen">
-          <header className="flex min-h-[64px] items-center justify-between border-b border-[#e3ebe2] bg-white px-3 py-1.5 sm:px-5">
+          {/* Frosted top bar: translucent + blurred where supported, near-opaque white elsewhere. */}
+          <header className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between gap-3 border-b border-[var(--glass-edge)] bg-white/95 px-3 py-1.5 shadow-[inset_0_-1px_0_rgba(255,255,255,0.6),0_12px_32px_-24px_rgba(28,51,20,0.45)] supports-[backdrop-filter]:bg-white/[0.78] supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150 sm:px-5">
             <div className="flex min-w-0 items-center gap-3 sm:gap-7">
               <AdminMobileHeader adminName={session.user.name ?? "Admin"} />
               <Logo className="w-[125px] sm:w-[155px]" />
               <div className="hidden items-center gap-2 md:flex">
-                <Leaf className="h-5 w-5 text-[#69be28]" />
-                <span className="font-[cursive] text-base text-[#4f7f49]">Healthy Soil&nbsp; | &nbsp;Green Future</span>
+                <Leaf className="h-5 w-5 text-leaf" aria-hidden />
+                <span className="font-display text-base italic text-leaf">Healthy Soil&nbsp; | &nbsp;Green Future</span>
               </div>
             </div>
 
@@ -37,7 +40,7 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
             </div>
           </header>
 
-          <main className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 lg:p-4">{children}</main>
+          <main className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 lg:p-5">{children}</main>
         </div>
       </div>
     </div>

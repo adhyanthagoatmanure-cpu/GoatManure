@@ -30,7 +30,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             role="status"
-            className="flex items-center gap-2 rounded-md bg-[var(--color-ink)] px-4 py-3 text-sm text-white shadow-lg animate-in fade-in slide-in-from-bottom-2"
+            data-on-dark
+            className="flex items-center gap-2.5 rounded-[var(--radius-md)] border border-white/15 bg-[var(--color-canopy-dark)]/95 px-4 py-3 text-sm text-white shadow-[0_18px_40px_-14px_rgba(0,0,0,0.5)] backdrop-blur-md animate-in fade-in slide-in-from-bottom-2"
           >
             {t.variant === "success" ? (
               <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--color-gold)]" />

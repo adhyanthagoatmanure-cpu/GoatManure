@@ -104,54 +104,83 @@ const SECTIONS = [
   },
 ];
 
+const slugify = (title: string) =>
+  title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 export default function PrivacyPolicyPage() {
+  const toc = [...SECTIONS.map((section) => section.title), "Contact Us"];
+
   return (
     <div>
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-parchment-deep)]/60 py-14 sm:py-20">
-        <div className="container-page max-w-4xl">
-          <p className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-[var(--color-bronze)]">
-            ADHYANTHA
-          </p>
+      <header className="border-b border-border bg-[radial-gradient(30rem_16rem_at_90%_0%,rgba(201,162,39,0.12),transparent_70%),linear-gradient(135deg,var(--color-sage)_0%,var(--color-canvas)_70%)] py-14 sm:py-20">
+        <div className="container-page max-w-5xl">
+          <p className="eyebrow">ADHYANTHA</p>
           <h1 className="mt-3 font-display text-4xl font-medium sm:text-5xl">Privacy Policy</h1>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--color-stone)]">
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-stone">
             This policy explains how ADHYANTHA handles information when you visit our website,
             create an account, or place an order.
           </p>
-          <p className="mt-5 text-sm font-semibold text-[var(--color-ink)]">Last updated: September 16, 2026</p>
+          <p className="mt-5 text-sm font-semibold text-ink">Last updated: September 16, 2026</p>
         </div>
       </header>
 
-      <main className="container-page max-w-4xl py-12 sm:py-20">
-        <div className="space-y-10 sm:space-y-12">
-          {SECTIONS.map((section) => (
-            <section key={section.title}>
-              <h2 className="font-display text-2xl font-medium sm:text-3xl">{section.title}</h2>
-              <div className="mt-3 space-y-3 text-sm leading-7 text-[var(--color-stone)] sm:text-base">
-                {section.body.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
+      {/* No <main> here: SiteChrome already provides the page's single main landmark. */}
+      <div className="container-page max-w-5xl py-10 sm:py-16">
+        <div className="grid gap-10 lg:grid-cols-[230px_1fr] lg:gap-12">
+          <nav aria-label="Privacy policy sections" className="hidden lg:block">
+            <div className="sticky top-28 max-h-[calc(100vh-9rem)] overflow-y-auto pr-2">
+              <p className="eyebrow mb-3">On this page</p>
+              <ol className="space-y-1 border-l border-border text-sm">
+                {toc.map((title) => (
+                  <li key={title}>
+                    <a
+                      href={`#${slugify(title)}`}
+                      className="-ml-px block border-l-2 border-transparent py-1.5 pl-3 text-stone transition-colors hover:border-leaf hover:text-canopy"
+                    >
+                      {title}
+                    </a>
+                  </li>
                 ))}
-              </div>
-            </section>
-          ))}
-
-          <section>
-            <h2 className="font-display text-2xl font-medium sm:text-3xl">Contact Us</h2>
-            <div className="mt-3 space-y-3 text-sm leading-7 text-[var(--color-stone)] sm:text-base">
-              <p>
-                For privacy questions, account or data deletion requests, or corrections to your
-                information, please contact ADHYANTHA through our contact page or the support
-                details currently listed on the website.
-              </p>
-              <p>
-                Email: <a className="font-semibold text-[var(--color-canopy)] underline" href={`mailto:${SITE.supportEmail}`}>{SITE.supportEmail}</a>
-              </p>
-              <p>
-                You can also use the <Link className="font-semibold text-[var(--color-canopy)] underline" href="/contact">ADHYANTHA contact page</Link>.
-              </p>
+              </ol>
             </div>
-          </section>
+          </nav>
+
+          <div className="surface rounded-[var(--radius-xl)] p-6 sm:p-10">
+            <div className="space-y-10 sm:space-y-12">
+              {SECTIONS.map((section) => (
+                <section key={section.title} id={slugify(section.title)} className="scroll-mt-header">
+                  <h2 className="font-display text-2xl font-medium sm:text-3xl">{section.title}</h2>
+                  <div className="mt-3 space-y-3 text-sm leading-7 text-stone sm:text-base">
+                    {section.body.map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
+                  </div>
+                </section>
+              ))}
+
+              <section id={slugify("Contact Us")} className="scroll-mt-header">
+                <h2 className="font-display text-2xl font-medium sm:text-3xl">Contact Us</h2>
+                <div className="mt-3 space-y-3 text-sm leading-7 text-stone sm:text-base">
+                  <p>
+                    For privacy questions, account or data deletion requests, or corrections to your
+                    information, please contact ADHYANTHA through our contact page or the support
+                    details currently listed on the website.
+                  </p>
+                  <p>
+                    Email: <a className="font-semibold text-canopy underline underline-offset-4" href={`mailto:${SITE.supportEmail}`}>{SITE.supportEmail}</a>
+                  </p>
+                  <p>
+                    You can also use the <Link className="font-semibold text-canopy underline underline-offset-4" href="/contact">ADHYANTHA contact page</Link>.
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

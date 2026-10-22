@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { ArrowLeft, Leaf } from "lucide-react";
 import { BlogPostForm } from "@/components/admin/blog-post-form";
+import { AdminPageHeader } from "@/components/admin/admin-ui";
+import { ButtonLink } from "@/components/ui/button";
 
 export default async function EditBlogPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -8,8 +11,17 @@ export default async function EditBlogPostPage({ params }: { params: Promise<{ i
   if (!post) notFound();
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-medium">Edit Article</h1>
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        icon={Leaf}
+        title="Edit Article"
+        description={post.title}
+        actions={
+          <ButtonLink href="/admin/blog" variant="outline">
+            <ArrowLeft className="h-4 w-4" aria-hidden /> Back to blog
+          </ButtonLink>
+        }
+      />
       <BlogPostForm
         postId={post.id}
         defaultValues={{

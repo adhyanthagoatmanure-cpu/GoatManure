@@ -37,10 +37,11 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="container-page py-10 sm:py-16">
+    <div className="container-page py-12 sm:py-20">
       <div className="mx-auto max-w-xl text-center">
-        <h1 className="font-display text-3xl font-medium sm:text-4xl">Get in Touch</h1>
-        <p className="mt-2 text-[var(--color-stone)]">
+        <p className="eyebrow">Contact</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">Get in Touch</h1>
+        <p className="mt-3 text-stone">
           Questions about our products or your order? We&apos;d love to hear from you.
         </p>
       </div>
@@ -52,9 +53,9 @@ export default function ContactPage() {
           <ContactInfoCard icon={Mail} title="Email" lines={[SITE.supportEmail, "(We reply within 24 hours)"]} />
           <ContactInfoCard icon={Clock} title="Business Hours" lines={["Mon – Sat: 9:00 AM – 6:00 PM", "Sunday: Closed"]} />
 
-          <div className="aspect-[4/3] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-parchment-deep)]">
+          <div className="surface aspect-[4/3] overflow-hidden rounded-[var(--radius-md)] bg-parchment-deep">
             <iframe
-              title="Map"
+              title="Map showing the ADHYANTHA business address"
               className="h-full w-full grayscale"
               loading="lazy"
               src={`https://www.google.com/maps?q=${encodeURIComponent(SITE.address)}&output=embed`}
@@ -62,7 +63,7 @@ export default function ContactPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="glass-strong rounded-[var(--radius-lg)] p-6 sm:p-8 lg:sticky lg:top-28 lg:self-start">
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Name" {...register("name")} error={errors.name?.message} />
             <Input label="Email" type="email" {...register("email")} error={errors.email?.message} />
@@ -85,14 +86,14 @@ export default function ContactPage() {
 
 function ContactInfoCard({ icon: Icon, title, lines }: { icon: typeof MapPin; title: string; lines: string[] }) {
   return (
-    <div className="flex gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-canopy)]/10">
-        <Icon className="h-4.5 w-4.5 text-[var(--color-canopy)]" />
+    <div className="surface flex gap-3.5 rounded-[var(--radius-md)] p-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-sage text-canopy ring-1 ring-inset ring-canopy/10">
+        <Icon className="h-5 w-5" aria-hidden />
       </span>
       <div>
-        <p className="text-sm font-medium">{title}</p>
+        <p className="text-sm font-semibold text-ink">{title}</p>
         {lines.map((l) => (
-          <p key={l} className="text-xs text-[var(--color-stone)]">{l}</p>
+          <p key={l} className="text-sm text-stone">{l}</p>
         ))}
       </div>
     </div>

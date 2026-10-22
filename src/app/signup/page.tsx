@@ -117,14 +117,14 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-[var(--color-canopy)] hover:underline">
+          <Link href="/login" className="font-semibold text-canopy underline-offset-4 hover:underline">
             Log In
           </Link>
         </>
       }
     >
       {serverError && (
-        <p className="mb-4 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">
+        <p role="alert" className="mb-4 rounded-[var(--radius-sm)] border border-error/25 bg-error-bg px-3.5 py-2.5 text-sm font-medium text-error">
           {serverError}
         </p>
       )}
@@ -137,10 +137,10 @@ export default function SignupPage() {
           <Input label="Confirm Password" type="password" autoComplete="new-password" {...register("confirmPassword")} error={errors.confirmPassword?.message} />
 
           <label className="flex items-start gap-2.5 text-sm text-[var(--color-stone)]">
-            <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-[var(--color-border-strong)]" {...register("agreeToTerms")} />
-            <span>I agree to the <Link href="/terms" className="font-medium text-[#4f9c42] hover:underline">Terms &amp; Conditions</Link> and <Link href="/privacy-policy" className="font-medium text-[#4f9c42] hover:underline">Privacy Policy</Link>.</span>
+            <input type="checkbox" className="mt-1 h-4 w-4 rounded border-field-border accent-[var(--color-canopy)]" {...register("agreeToTerms")} />
+            <span>I agree to the <Link href="/terms" className="font-semibold text-canopy underline-offset-4 hover:underline">Terms &amp; Conditions</Link> and <Link href="/privacy-policy" className="font-semibold text-canopy underline-offset-4 hover:underline">Privacy Policy</Link>.</span>
           </label>
-          {errors.agreeToTerms && <p className="text-xs text-[var(--color-error)]">{errors.agreeToTerms.message}</p>}
+          {errors.agreeToTerms && <p role="alert" className="text-sm text-[var(--color-error)]">{errors.agreeToTerms.message}</p>}
           {!challengeId && (
             <Button type="submit" size="lg" className="mt-1 w-full" isLoading={isSubmitting || isSending}>
               <MessageCircle className="h-4 w-4" /> Send WhatsApp Verification Code

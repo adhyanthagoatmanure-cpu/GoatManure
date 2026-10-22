@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { normalizeProductImages } from "@/lib/utils";
+import { ArrowLeft, Package } from "lucide-react";
 import { ProductForm } from "@/components/admin/product-form";
+import { AdminPageHeader } from "@/components/admin/admin-ui";
+import { ButtonLink } from "@/components/ui/button";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,8 +15,17 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   if (!product) notFound();
 
   return (
-    <div className="flex flex-col gap-5">
-      <h1 className="font-display text-2xl font-medium">Edit Product</h1>
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        icon={Package}
+        title="Edit Product"
+        description={product.name}
+        actions={
+          <ButtonLink href="/admin/products" variant="outline">
+            <ArrowLeft className="h-4 w-4" aria-hidden /> Back to products
+          </ButtonLink>
+        }
+      />
       <ProductForm
         productId={product.id}
         defaultValues={{

@@ -51,7 +51,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-stone-light)]">
+      <span className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--color-stone-light)]/60">
         {children}
       </span>
     );
@@ -60,8 +60,8 @@ function PageLink({
     <Link
       href={href}
       className={cn(
-        "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium",
-        active ? "bg-[var(--color-canopy)] text-white" : "text-[var(--color-ink)] hover:bg-[var(--color-parchment-deep)]"
+        "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-colors",
+        active ? "bg-[var(--color-canopy)] text-white shadow-[0_6px_14px_-6px_rgba(28,51,20,0.6)]" : "text-[var(--color-ink)] hover:bg-[var(--color-sage)]"
       )}
       {...props}
     >

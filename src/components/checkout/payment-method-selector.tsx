@@ -27,17 +27,18 @@ export function PaymentMethodSelector({
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Payment method">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
+          aria-pressed={value === opt.value}
           className={cn(
-            "flex items-start gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left transition-colors",
+            "flex items-start gap-3 rounded-[var(--radius-md)] border-2 p-4 text-left transition-[background-color,border-color,box-shadow]",
             value === opt.value
-              ? "border-[var(--color-canopy)] bg-[var(--color-canopy)]/5"
-              : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
+              ? "border-[var(--color-canopy)] bg-[var(--color-sage)] shadow-[var(--shadow-soft)]"
+              : "border-[var(--color-border)] bg-white hover:border-[var(--color-border-strong)]"
           )}
         >
           <span
@@ -49,11 +50,11 @@ export function PaymentMethodSelector({
             <opt.icon className="h-4.5 w-4.5" />
           </span>
           <span className="flex-1">
-            <span className="flex items-center gap-1.5 font-medium">
+            <span className="flex items-center gap-1.5 font-semibold">
               {opt.title}
-              {value === opt.value && <Check className="h-4 w-4 text-[var(--color-canopy)]" />}
+              {value === opt.value && <Check className="h-4 w-4 text-[var(--color-canopy)]" aria-hidden="true" />}
             </span>
-            <span className="mt-0.5 block text-xs text-[var(--color-stone)]">{opt.description}</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-[var(--color-stone)]">{opt.description}</span>
           </span>
         </button>
       ))}

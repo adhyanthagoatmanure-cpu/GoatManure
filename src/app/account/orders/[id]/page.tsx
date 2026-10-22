@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { OrderTimeline } from "@/components/order/order-timeline";
 import { formatDate, formatINR, formatOrderNumber } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from "@/types";
@@ -25,53 +25,52 @@ export default async function AccountOrderDetailPage({ params }: { params: Promi
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-[var(--color-stone)]">Order</p>
-          <h2 className="font-display text-2xl font-medium">{formatOrderNumber(order.orderNumber)}</h2>
+          <p className="eyebrow">Order</p>
+          <h2 className="mt-1 font-display text-2xl font-semibold">{formatOrderNumber(order.orderNumber)}</h2>
         </div>
-        <Link
-          href={`/track-order/${order.id}`}
-          className="flex items-center gap-2 rounded-full border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium hover:border-[var(--color-canopy)]"
-        >
-          <Truck className="h-4 w-4" /> Track Order
-        </Link>
+        <ButtonLink href={`/track-order/${order.id}`} variant="outline" className="rounded-full">
+          <Truck className="h-4 w-4" aria-hidden /> Track Order
+        </ButtonLink>
       </div>
 
-      <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <OrderTimeline currentStatus={order.orderStatus} />
-      </div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+        <div className="flex flex-col gap-6">
+          <div className="glass-strong rounded-[var(--radius-lg)] p-6">
+            <OrderTimeline currentStatus={order.orderStatus} />
+          </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
-          <h3 className="mb-4 flex items-center gap-2 font-display text-lg font-medium">
-            <Package className="h-4 w-4" /> Items
-          </h3>
-          <div className="flex flex-col divide-y divide-[var(--color-border)]">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex justify-between py-3 text-sm">
-                <span>{item.productName} <span className="text-[var(--color-stone)]">({item.weightLabel}) × {item.quantity}</span></span>
-                <span className="font-medium">{formatINR(item.lineTotal)}</span>
-              </div>
-            ))}
+          <div className="surface rounded-[var(--radius-md)] p-5 sm:p-6">
+            <h3 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold">
+              <Package className="h-4 w-4 text-leaf" aria-hidden /> Items
+            </h3>
+            <div className="flex flex-col divide-y divide-[var(--color-border)]">
+              {order.items.map((item) => (
+                <div key={item.id} className="flex justify-between gap-4 py-3 text-sm">
+                  <span>{item.productName} <span className="whitespace-nowrap text-[var(--color-stone)]">({item.weightLabel}) × {item.quantity}</span></span>
+                  <span className="shrink-0 font-medium">{formatINR(item.lineTotal)}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-            <p className="text-sm font-medium">Payment</p>
+          <div className="surface rounded-[var(--radius-md)] p-5">
+            <p className="text-sm font-semibold">Payment</p>
             <p className="mt-1 text-sm text-[var(--color-stone)]">{PAYMENT_METHOD_LABELS[order.paymentMethod]}</p>
             <Badge tone={order.paymentStatus === "PAID" ? "success" : "warning"} className="mt-2">
               {PAYMENT_STATUS_LABELS[order.paymentStatus]}
             </Badge>
           </div>
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-            <p className="text-sm font-medium">Shipping Address</p>
+          <div className="surface rounded-[var(--radius-md)] p-5">
+            <p className="text-sm font-semibold">Shipping Address</p>
             <p className="mt-1 text-sm text-[var(--color-stone)]">
               {shipping.fullName} — {shipping.phone}<br />
               {shipping.line1}{shipping.line2 ? `, ${shipping.line2}` : ""}<br />
               {shipping.city}, {shipping.state} {shipping.pincode}
             </p>
           </div>
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm">
+          <div className="surface rounded-[var(--radius-md)] p-5 text-sm">
             <div className="flex justify-between text-[var(--color-stone)]"><span>Subtotal</span><span>{formatINR(order.subtotal)}</span></div>
             {order.discountAmount > 0 && (
               <div className="flex justify-between text-[var(--color-success)]"><span>Discount</span><span>− {formatINR(order.discountAmount)}</span></div>

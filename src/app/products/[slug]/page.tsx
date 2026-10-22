@@ -31,36 +31,39 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="container-page py-8 sm:py-12">
-      <nav className="mb-6 flex items-center gap-1.5 text-sm text-[var(--color-stone)]">
-        <Link href="/" className="hover:text-[var(--color-canopy)]">Home</Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <Link href="/products" className="hover:text-[var(--color-canopy)]">Products</Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="min-w-0 flex-1 truncate text-[var(--color-ink)]">{product.name}</span>
+      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[var(--color-stone)]">
+        <Link href="/" className="transition-colors hover:text-[var(--color-canopy)]">Home</Link>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <Link href="/products" className="transition-colors hover:text-[var(--color-canopy)]">Products</Link>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span aria-current="page" className="min-w-0 flex-1 truncate text-[var(--color-ink)]">{product.name}</span>
       </nav>
 
-      <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
+      <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
         <ProductGallery images={product.images} productName={product.name} />
 
         <div className="min-w-0">
           {product.category && (
             <Link
               href={`/products?category=${product.category.slug}`}
-              className="text-xs font-medium uppercase tracking-wide text-[var(--color-bronze)]"
+              className="eyebrow hover:underline"
             >
               {product.category.name}
             </Link>
           )}
-          <h1 className="mt-1.5 break-words font-display text-3xl font-medium sm:text-4xl">{product.name}</h1>
+          <h1 className="mt-2 break-words font-display text-3xl font-medium sm:text-5xl">{product.name}</h1>
           {product.shortDescription && (
-            <p className="mt-2.5 text-[15px] text-[var(--color-stone)]">{product.shortDescription}</p>
+            <p className="mt-3 text-base leading-relaxed text-[var(--color-stone)]">{product.shortDescription}</p>
           )}
 
           {product.benefits.length > 0 && (
-            <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
+            <ul className="mt-5 flex flex-wrap gap-2">
               {product.benefits.map((b) => (
-                <li key={b.id} className="flex items-center gap-1.5 text-sm text-[var(--color-ink)]">
-                  <Sprout className="h-3.5 w-3.5 text-[var(--color-canopy)]" /> {b.title}
+                <li
+                  key={b.id}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-sage)] px-3 py-1.5 text-sm font-medium text-[var(--color-canopy-dark)]"
+                >
+                  <Sprout className="h-3.5 w-3.5 text-[var(--color-leaf)]" aria-hidden="true" /> {b.title}
                 </li>
               ))}
             </ul>
@@ -83,9 +86,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       />
 
       {related.length > 0 && (
-        <section className="mt-16 border-t border-[var(--color-border)] pt-12">
-          <h2 className="font-display text-2xl font-medium">You may also like</h2>
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+        <section className="mt-20" aria-labelledby="related-heading">
+          <p className="eyebrow">Keep exploring</p>
+          <h2 id="related-heading" className="mt-2 font-display text-3xl font-medium">You may also like</h2>
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
             {related.map((p, i) => (
               <ProductCard key={p.id} product={p} index={i} />
             ))}

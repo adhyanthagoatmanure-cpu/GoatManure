@@ -35,31 +35,31 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
 
   return (
     <article className="container-page py-8 sm:py-12">
-      <nav className="mb-6 flex items-center gap-1.5 text-sm text-[var(--color-stone)]">
-        <Link href="/blog" className="hover:text-[var(--color-canopy)]">Blog</Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="line-clamp-1 text-[var(--color-ink)]">{post.title}</span>
+      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-stone">
+        <Link href="/blog" className="rounded font-medium hover:text-canopy">Blog</Link>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span aria-current="page" className="line-clamp-1 text-ink">{post.title}</span>
       </nav>
 
       <div className="mx-auto max-w-3xl">
         {post.category && (
-          <span className="rounded-full bg-[var(--color-canopy)]/10 px-3 py-1 text-xs font-medium text-[var(--color-canopy)]">
+          <span className="inline-block rounded-full bg-sage px-3 py-1 text-xs font-bold text-canopy ring-1 ring-inset ring-canopy/10">
             {post.category}
           </span>
         )}
-        <h1 className="mt-4 text-balance font-display text-3xl font-medium leading-tight sm:text-4xl">{post.title}</h1>
-        <div className="mt-4 flex items-center gap-4 text-sm text-[var(--color-stone)]">
-          <span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" /> {post.author}</span>
-          <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {formatDate(post.publishedAt ?? post.createdAt)}</span>
+        <h1 className="mt-4 text-balance font-display text-3xl font-medium leading-tight sm:text-5xl sm:leading-[1.1]">{post.title}</h1>
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-stone">
+          <span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" aria-hidden /> {post.author}</span>
+          <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" aria-hidden /> {formatDate(post.publishedAt ?? post.createdAt)}</span>
         </div>
 
-        <div className="relative mt-8 flex aspect-[21/9] items-center justify-center overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-canopy)]">
+        <div className="relative mt-8 flex aspect-[21/9] items-center justify-center overflow-hidden rounded-[var(--radius-xl)] bg-canopy shadow-[var(--shadow-lifted)] ring-1 ring-canopy/10">
           {/* Blog images may be local uploads or existing absolute URLs. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={post.featuredImage || FALLBACK_IMAGE} alt={post.title} className="h-full w-full object-cover" />
         </div>
 
-        <div className="prose prose-neutral mt-10 max-w-none whitespace-pre-line text-[16px] leading-relaxed text-[var(--color-ink)]">
+        <div className="prose prose-neutral mt-10 max-w-none whitespace-pre-line text-base leading-8 text-ink sm:text-[17px]">
           {post.content}
         </div>
       </div>
@@ -67,14 +67,14 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
       <BlogComments postId={post.id} />
 
       {related.length > 0 && (
-        <div className="mx-auto mt-16 max-w-5xl border-t border-[var(--color-border)] pt-12">
-          <h2 className="font-display text-2xl font-medium">Related Articles</h2>
+        <section aria-labelledby="related-articles" className="mx-auto mt-16 max-w-5xl border-t border-border pt-12">
+          <h2 id="related-articles" className="font-display text-2xl font-medium sm:text-3xl">Related Articles</h2>
           <div className="mt-6 grid gap-6 sm:grid-cols-3">
             {related.map((p, i) => (
               <BlogCard key={p.id} post={p} index={i} />
             ))}
           </div>
-        </div>
+        </section>
       )}
     </article>
   );

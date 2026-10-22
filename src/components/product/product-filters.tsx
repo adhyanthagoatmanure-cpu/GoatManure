@@ -29,23 +29,25 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {activeQuery && (
-        <div className="flex items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--color-parchment-deep)] px-3.5 py-2 text-sm">
-          <Search className="h-3.5 w-3.5 text-[var(--color-stone)]" />
-          Results for <strong>&ldquo;{activeQuery}&rdquo;</strong>
+        <div className="flex w-fit max-w-full items-center gap-2 rounded-full bg-[var(--color-sage)] py-1.5 pl-3.5 pr-1.5 text-sm text-[var(--color-canopy-dark)]">
+          <Search className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 truncate">
+            Results for <strong>&ldquo;{activeQuery}&rdquo;</strong>
+          </span>
           <button
             onClick={() => updateParam("q", "")}
-            className="ml-1 flex h-5 w-5 items-center justify-center rounded-full hover:bg-[var(--color-border)]"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/70"
             aria-label="Clear search"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-wrap gap-2">
+      <div className="glass flex flex-wrap items-center gap-3 rounded-[var(--radius-lg)] p-3 sm:p-4">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
           <FilterChip active={!activeCategory} onClick={() => updateParam("category", "")}>
             All
           </FilterChip>
@@ -60,7 +62,7 @@ export function ProductFilters({ categories }: { categories: Category[] }) {
           ))}
         </div>
 
-        <div className="ml-auto w-44">
+        <div className="w-full sm:ml-auto sm:w-52">
           <Select
             aria-label="Sort products"
             value={activeSort}
@@ -89,11 +91,12 @@ function FilterChip({
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+        "h-10 rounded-full border px-4 text-sm font-semibold transition-[background-color,border-color,color,box-shadow]",
         active
-          ? "border-[var(--color-canopy)] bg-[var(--color-canopy)] text-white"
-          : "border-[var(--color-border-strong)] text-[var(--color-ink)] hover:border-[var(--color-canopy)]"
+          ? "border-[var(--color-canopy)] bg-[var(--color-canopy)] text-white shadow-[0_6px_14px_-8px_rgba(28,51,20,0.7)]"
+          : "border-[var(--color-border-strong)] bg-white/80 text-[var(--color-ink)] hover:border-[var(--color-canopy-light)] hover:bg-[var(--color-sage)]"
       )}
     >
       {children}

@@ -44,7 +44,11 @@ export function RetryPayUPayment({ intentId }: { intentId: string }) {
           ))}
         </form>
       )}
-      {error && <p className="text-sm text-[var(--color-error)]" role="alert">{error}</p>}
+      {error && (
+        <p className="mb-3 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm font-medium text-[var(--color-error)]" role="alert">
+          {error}
+        </p>
+      )}
       <Button size="lg" onClick={retryPayment} isLoading={isSubmitting} className="w-full sm:w-auto">
         Retry Payment
       </Button>

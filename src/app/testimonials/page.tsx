@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Info } from "lucide-react";
+import { Info, MessageSquareQuote } from "lucide-react";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TestimonialCard } from "@/components/testimonial/testimonial-card";
 import { prisma } from "@/lib/prisma";
 
@@ -13,6 +14,7 @@ export default async function TestimonialsPage() {
     where: { isPublished: true },
     orderBy: { sortOrder: "asc" },
   });
+  const hasDemoReviews = testimonials.some((t) => t.isDemo);
 
   return (
     <div className="container-page py-14 sm:py-20">
@@ -23,19 +25,34 @@ export default async function TestimonialsPage() {
         className="mx-auto"
       />
 
-      <div className="mx-auto mt-6 flex max-w-xl items-start gap-2.5 rounded-[var(--radius-sm)] bg-[var(--color-warning-bg)] px-4 py-3 text-sm text-[var(--color-warning)]">
-        <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>
-          Reviews marked &ldquo;Demo Review&rdquo; are placeholder content and will be replaced with genuine
-          customer testimonials as they come in.
-        </span>
-      </div>
+      {hasDemoReviews && (
+        <div
+          role="note"
+          className="mx-auto mt-6 flex max-w-xl items-start gap-2.5 rounded-[var(--radius-sm)] border border-warning/20 bg-warning-bg px-4 py-3 text-sm text-warning"
+        >
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            Reviews marked &ldquo;Demo Review&rdquo; are placeholder content and will be replaced with genuine
+            customer testimonials as they come in.
+          </span>
+        </div>
+      )}
 
-      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {testimonials.map((t) => (
-          <TestimonialCard key={t.id} testimonial={t} />
-        ))}
-      </div>
+      {testimonials.length === 0 ? (
+        <div className="mx-auto mt-10 max-w-xl">
+          <EmptyState
+            icon={MessageSquareQuote}
+            title="No reviews yet"
+            description="Customer reviews will appear here once they are published."
+          />
+        </div>
+      ) : (
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {testimonials.map((t) => (
+            <TestimonialCard key={t.id} testimonial={t} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

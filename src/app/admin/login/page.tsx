@@ -39,33 +39,56 @@ function AdminLoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--color-canopy-dark)] px-4">
-      <div className="w-full max-w-sm rounded-[var(--radius-lg)] bg-[var(--color-surface)] p-8 shadow-2xl">
+    <main className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      {/* Soft photo + forest gradient behind the frosted card (decorative only) */}
+      <Image
+        src="/images/02_hands_with_soil_seedling.jpg"
+        alt=""
+        fill
+        sizes="100vw"
+        className="-z-20 object-cover"
+        priority
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10 bg-[linear-gradient(160deg,rgba(28,51,20,0.92)_0%,rgba(28,51,20,0.8)_50%,rgba(20,38,14,0.94)_100%)]"
+      />
+
+      <div className="glass-strong w-full max-w-md rounded-[var(--radius-xl)] p-7 sm:p-9">
         <div className="flex flex-col items-center">
-          <span className="relative h-14 w-14 overflow-hidden rounded-full">
-            <Image src="/images/brand/logo-mark-64.png" alt="ADHYANTHA" fill className="object-cover" />
+          <span className="relative h-16 w-16 overflow-hidden rounded-full ring-2 ring-white/80 shadow-[var(--shadow-soft)]">
+            <Image src="/images/brand/logo-mark-64.png" alt="ADHYANTHA" fill sizes="64px" className="object-cover" />
           </span>
-          <h1 className="mt-4 flex items-center gap-2 font-display text-xl font-medium">
-            <ShieldCheck className="h-5 w-5 text-[var(--color-canopy)]" /> Admin Console
+          <h1 className="mt-5 flex items-center gap-2 font-display text-3xl font-semibold text-ink">
+            <ShieldCheck className="h-6 w-6 text-leaf" aria-hidden /> Admin Console
           </h1>
-          <p className="mt-1 text-center text-sm text-[var(--color-stone)]">Sign in to manage ADHYANTHA</p>
+          <p className="mt-1.5 text-center text-sm text-stone">Sign in to manage ADHYANTHA</p>
         </div>
 
         {serverError && (
-          <p className="mt-5 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">
+          <p
+            role="alert"
+            className="mt-5 rounded-[var(--radius-sm)] border border-error/25 bg-error-bg px-3.5 py-2.5 text-sm font-medium text-error"
+          >
             {serverError}
           </p>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4">
-          <Input label="Email" type="email" {...register("email")} error={errors.email?.message} />
-          <Input label="Password" type="password" {...register("password")} error={errors.password?.message} />
-          <Button type="submit" size="lg" className="mt-1" isLoading={isSubmitting}>
+          <Input label="Email" type="email" autoComplete="email" {...register("email")} error={errors.email?.message} />
+          <Input
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            {...register("password")}
+            error={errors.password?.message}
+          />
+          <Button type="submit" size="lg" className="mt-1 w-full" isLoading={isSubmitting}>
             Sign In
           </Button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
 

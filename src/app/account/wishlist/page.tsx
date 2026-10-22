@@ -31,10 +31,13 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
-      {items.map((product, i) => (
-        <ProductCard key={product.id} product={product} index={i} />
-      ))}
+    <div>
+      <h2 className="mb-5 font-display text-2xl font-semibold">Your Wishlist</h2>
+      <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
+        {items.map((product, i) => (
+          <ProductCard key={product.id} product={product} index={i} />
+        ))}
+      </div>
     </div>
   );
 }

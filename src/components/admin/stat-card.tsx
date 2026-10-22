@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { PANEL_GLASS } from "@/components/admin/admin-ui";
 
 export function StatCard({
   icon: Icon,
@@ -18,39 +19,32 @@ export function StatCard({
   href?: string;
 }) {
   const toneClasses = {
-    neutral: "bg-[var(--color-canopy)]/10 text-[var(--color-canopy)]",
-    success: "bg-[var(--color-success-bg)] text-[var(--color-success)]",
-    warning: "bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
-    error: "bg-[var(--color-error-bg)] text-[var(--color-error)]",
+    neutral: "bg-canopy/10 text-canopy",
+    success: "bg-success-bg text-success",
+    warning: "bg-warning-bg text-warning",
+    error: "bg-error-bg text-error",
   }[tone];
 
   const content = (
     <>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-[var(--color-stone)]">{label}</span>
+        <span className="text-sm font-medium text-stone">{label}</span>
         <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", toneClasses)}>
-          <Icon className="h-4.5 w-4.5" />
+          <Icon className="h-4.5 w-4.5" aria-hidden />
         </span>
       </div>
-      <p className="mt-3 font-display text-2xl font-semibold">{value}</p>
-      {hint && <p className="mt-1 text-xs text-[var(--color-stone)]">{hint}</p>}
+      <p className="mt-3 font-display text-2xl font-semibold text-ink">{value}</p>
+      {hint && <p className="mt-1 text-xs text-stone">{hint}</p>}
     </>
   );
 
   if (href) {
     return (
-      <Link
-        href={href}
-        className="block rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition-colors hover:border-[var(--color-canopy-light)] hover:bg-[var(--color-parchment-deep)]/30"
-      >
+      <Link href={href} className={cn(PANEL_GLASS, "glass-lift block p-5")}>
         {content}
       </Link>
     );
   }
 
-  return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-      {content}
-    </div>
-  );
+  return <div className={cn(PANEL_GLASS, "p-5")}>{content}</div>;
 }

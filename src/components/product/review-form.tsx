@@ -50,8 +50,8 @@ export function ReviewForm({ productId }: { productId: string }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mt-8 border-t border-[var(--color-border)] pt-8">
-      <h4 className="font-display text-lg font-medium">Write a Review</h4>
-      <div className="mt-3 flex items-center gap-1">
+      <h3 className="font-display text-xl font-medium">Write a Review</h3>
+      <div className="mt-3 flex items-center" role="group" aria-label="Your rating">
         {[1, 2, 3, 4, 5].map((i) => (
           <button
             key={i}
@@ -59,7 +59,9 @@ export function ReviewForm({ productId }: { productId: string }) {
             onClick={() => setRating(i)}
             onMouseEnter={() => setHoverRating(i)}
             onMouseLeave={() => setHoverRating(0)}
-            aria-label={`${i} star`}
+            aria-label={`${i} star${i > 1 ? "s" : ""}`}
+            aria-pressed={i === rating}
+            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-[var(--color-sage)]"
           >
             <Star
               className={cn(

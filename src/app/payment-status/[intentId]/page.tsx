@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AlertCircle, CheckCircle2, Clock3 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatINR } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { RetryPayUPayment } from "@/components/checkout/retry-payu-payment";
 import { canRetryPayUPayment } from "@/server/payment/payu-provider";
 
@@ -51,16 +50,16 @@ export default async function PaymentStatusPage({
 
   return (
     <div className="container-page py-12 sm:py-16">
-      <section className="mx-auto max-w-2xl rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8">
+      <section className="glass-strong mx-auto max-w-2xl rounded-[var(--radius-lg)] p-6 sm:p-8">
         <div className="flex flex-col items-center text-center">
-          <span className={`flex h-16 w-16 items-center justify-center rounded-full ${failed ? "bg-[var(--color-error-bg)]" : "bg-[var(--color-parchment-deep)]"}`}>
+          <span className={`flex h-16 w-16 items-center justify-center rounded-full ring-8 ${failed ? "bg-[var(--color-error-bg)] ring-[var(--color-error-bg)]/60" : "bg-[var(--color-sage)] ring-[var(--color-sage)]/60"}`}>
             {failed
-              ? <AlertCircle className="h-8 w-8 text-[var(--color-error)]" />
+              ? <AlertCircle className="h-8 w-8 text-[var(--color-error)]" aria-hidden />
               : intent.status === "PROCESSING"
-                ? <Clock3 className="h-8 w-8 text-[var(--color-canopy)]" />
-                : <CheckCircle2 className="h-8 w-8 text-[var(--color-canopy)]" />}
+                ? <Clock3 className="h-8 w-8 text-[var(--color-canopy)]" aria-hidden />
+                : <CheckCircle2 className="h-8 w-8 text-[var(--color-canopy)]" aria-hidden />}
           </span>
-          <h1 className="mt-5 font-display text-3xl font-medium">
+          <h1 className="mt-5 font-display text-3xl font-semibold">
             {failed ? "Payment Failed" : intent.status === "PROCESSING" ? "Confirming Payment" : "Payment Status Pending"}
           </h1>
           <p className="mt-2 max-w-lg text-[var(--color-stone)]">
@@ -97,11 +96,9 @@ export default async function PaymentStatusPage({
 
         <div className="mt-2 flex flex-col items-center justify-center gap-3 sm:flex-row">
           {canRetry && <RetryPayUPayment intentId={intent.id} />}
-          <Link href="/checkout">
-            <Button size="lg" variant="outline" className="w-full sm:w-auto">
-              {canRetry ? "Return to Checkout" : "Continue to Checkout"}
-            </Button>
-          </Link>
+          <ButtonLink href="/checkout" size="lg" variant="outline" className="w-full sm:w-auto">
+            {canRetry ? "Return to Checkout" : "Continue to Checkout"}
+          </ButtonLink>
         </div>
         {failed && !canRetry && (
           <p className="mt-4 text-center text-sm text-[var(--color-stone)]">

@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Plus, Pencil, Trash2, Search, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { PageSpinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/providers/toast-provider";
 import { formatINR } from "@/lib/utils";
+import {
+  AdminPageHeader, EmptyNote, ICON_BUTTON, ICON_BUTTON_DANGER, TABLE_HEAD, TBODY, TD, TH, TR, TableShell,
+} from "@/components/admin/admin-ui";
 
 interface AdminProduct {
   id: string;
@@ -45,68 +48,74 @@ export default function AdminProductsPage() {
   if (products === null) return <PageSpinner />;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-medium">Products</h1>
-        <Link href="/admin/products/new">
-          <Button><Plus className="h-4 w-4" /> Add Product</Button>
-        </Link>
-      </div>
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
+      <AdminPageHeader
+        icon={Package}
+        title="Products"
+        description="Manage the catalogue shown on the storefront."
+        actions={
+          <ButtonLink href="/admin/products/new">
+            <Plus className="h-4 w-4" aria-hidden /> Add Product
+          </ButtonLink>
+        }
+      />
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
           load(query);
         }}
-        className="flex max-w-sm items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] bg-white px-3.5 py-2"
+        className="flex h-11 max-w-sm items-center gap-2 rounded-[var(--radius-sm)] border border-field-border bg-white/90 px-3.5 transition-[border-color,box-shadow] focus-within:border-canopy focus-within:ring-4 focus-within:ring-canopy/15"
       >
-        <Search className="h-4 w-4 text-[var(--color-stone)]" />
+        <Search className="h-4 w-4 shrink-0 text-stone" aria-hidden />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search products…"
-          className="w-full text-sm focus:outline-none"
+          aria-label="Search products"
+          className="w-full bg-transparent text-sm text-ink placeholder:text-stone-light focus:outline-none"
         />
       </form>
 
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <table className="w-full text-sm">
-          <thead className="border-b border-[var(--color-border)] bg-[var(--color-parchment-deep)]/50 text-left text-xs uppercase tracking-wide text-[var(--color-stone)]">
+      <TableShell>
+        <table className="w-full min-w-[760px] text-sm">
+          <caption className="sr-only">Products</caption>
+          <thead className={TABLE_HEAD}>
             <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Variants</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th scope="col" className={TH}>Product</th>
+              <th scope="col" className={TH}>Category</th>
+              <th scope="col" className={TH}>Variants</th>
+              <th scope="col" className={TH}>Stock</th>
+              <th scope="col" className={TH}>Status</th>
+              <th scope="col" className={`${TH} text-right`}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-border)]">
+          <tbody className={TBODY}>
             {products.map((p) => {
               const totalStock = p.variants.reduce((s, v) => s + v.stock, 0);
               return (
-                <tr key={p.id}>
-                  <td className="px-4 py-3 font-medium">
+                <tr key={p.id} className={TR}>
+                  <td className={`${TD} font-medium text-ink`}>
                     {p.name}
                     {p.featured && <Badge tone="info" className="ml-2">Featured</Badge>}
                   </td>
-                  <td className="px-4 py-3 text-[var(--color-stone)]">{p.category?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-[var(--color-stone)]">
+                  <td className={`${TD} text-stone`}>{p.category?.name ?? "—"}</td>
+                  <td className={`${TD} text-stone`}>
                     {p.variants.map((v) => `${v.weightLabel} (${formatINR(v.offerPrice)})`).join(", ")}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={TD}>
                     <Badge tone={totalStock === 0 ? "error" : totalStock < 20 ? "warning" : "success"}>{totalStock} units</Badge>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={TD}>
                     <Badge tone={p.status === "ACTIVE" ? "success" : p.status === "DRAFT" ? "neutral" : "error"}>{p.status}</Badge>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-3">
-                      <Link href={`/admin/products/${p.id}`} className="text-[var(--color-canopy)] hover:underline">
-                        <Pencil className="h-4 w-4" />
+                  <td className={TD}>
+                    <div className="flex justify-end gap-1">
+                      <Link href={`/admin/products/${p.id}`} className={ICON_BUTTON} aria-label={`Edit ${p.name}`}>
+                        <Pencil className="h-4 w-4" aria-hidden />
                       </Link>
-                      <button onClick={() => handleDelete(p.id)} className="text-[var(--color-error)] hover:underline">
-                        <Trash2 className="h-4 w-4" />
+                      <button type="button" onClick={() => handleDelete(p.id)} className={ICON_BUTTON_DANGER} aria-label={`Delete ${p.name}`}>
+                        <Trash2 className="h-4 w-4" aria-hidden />
                       </button>
                     </div>
                   </td>
@@ -115,10 +124,8 @@ export default function AdminProductsPage() {
             })}
           </tbody>
         </table>
-        {products.length === 0 && (
-          <p className="p-8 text-center text-sm text-[var(--color-stone)]">No products yet — add your first one.</p>
-        )}
-      </div>
+        {products.length === 0 && <EmptyNote>No products yet — add your first one.</EmptyNote>}
+      </TableShell>
     </div>
   );
 }

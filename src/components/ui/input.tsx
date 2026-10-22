@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-[var(--color-ink)]">
+          <label htmlFor={inputId} className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">
             {label}
           </label>
         )}
@@ -28,15 +28,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             type={isPassword && isVisible ? "text" : type}
             className={cn(
-              "h-11 w-full rounded-[var(--radius-sm)] border bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-ink)]",
-              "placeholder:text-[var(--color-stone-light)] transition-colors",
-              "focus:outline-none focus:ring-2 focus:ring-[var(--color-canopy)]/30 focus:border-[var(--color-canopy)]",
-              error ? "border-[var(--color-error)]" : "border-[var(--color-border-strong)]",
+              "h-11 w-full rounded-[var(--radius-sm)] border bg-white/90 px-3.5 text-sm text-[var(--color-ink)]",
+              "placeholder:text-[var(--color-stone-light)] transition-[border-color,box-shadow,background-color]",
+              "focus:outline-none focus:bg-white focus:ring-4 focus:ring-[var(--color-canopy)]/15 focus:border-[var(--color-canopy)]",
+              error ? "border-[var(--color-error)]" : "border-[var(--color-field-border)]",
               props.disabled && "opacity-60 cursor-not-allowed bg-[var(--color-parchment-deep)]",
               isPassword && "pr-11",
               className
             )}
             aria-invalid={Boolean(error)}
+            aria-describedby={error && inputId ? `${inputId}-error` : undefined}
             {...props}
           />
           {isPassword && (
@@ -52,7 +53,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {hint && !error && <p className="mt-1.5 text-xs text-[var(--color-stone)]">{hint}</p>}
-        {error && <p className="mt-1.5 text-xs text-[var(--color-error)]">{error}</p>}
+        {error && (
+          <p id={inputId ? `${inputId}-error` : undefined} role="alert" className="mt-1.5 text-xs font-medium text-[var(--color-error)]">
+            {error}
+          </p>
+        )}
       </div>
     );
   }

@@ -78,25 +78,32 @@ function LoginForm() {
       footer={
         <>
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-[var(--color-canopy)] hover:underline">
+          <Link href="/signup" className="font-semibold text-canopy underline-offset-4 hover:underline">
             Sign Up
           </Link>
         </>
       }
     >
       {serverError && (
-        <p className="mb-4 rounded-[var(--radius-sm)] bg-[var(--color-error-bg)] px-3.5 py-2.5 text-sm text-[var(--color-error)]">
+        <p role="alert" className="mb-4 rounded-[var(--radius-sm)] border border-error/25 bg-error-bg px-3.5 py-2.5 text-sm font-medium text-error">
           {serverError}
         </p>
       )}
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input label="Email or Username" type="email" {...register("email")} error={errors.email?.message} />
+        <Input label="Email or Username" type="email" autoComplete="email" {...register("email")} error={errors.email?.message} />
         <div>
-          <Input label="Password" type="password" {...register("password")} error={errors.password?.message} />
-          <div className="mt-3 flex items-center justify-between gap-3 text-xs"><label className="flex items-center gap-2 text-[#718177]"><input type="checkbox" className="h-4 w-4 rounded border-[#c9d8c5] accent-[#4f9c42]" /> Remember me</label><Link href="/forgot-password" className="font-medium text-[#4f9c42] hover:underline">Forgot password?</Link></div>
+          <Input label="Password" type="password" autoComplete="current-password" {...register("password")} error={errors.password?.message} />
+          <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+            <label className="flex min-h-6 items-center gap-2 text-stone">
+              <input type="checkbox" className="h-4 w-4 rounded border-field-border accent-[var(--color-canopy)]" /> Remember me
+            </label>
+            <Link href="/forgot-password" className="font-semibold text-canopy underline-offset-4 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
         </div>
         <Button type="submit" size="lg" className="mt-1 w-full" isLoading={isSubmitting}>
-          <LogIn className="h-4 w-4" /> Login
+          <LogIn className="h-4 w-4" aria-hidden /> Login
         </Button>
       </form>
       <OrDivider />

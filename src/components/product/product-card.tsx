@@ -39,16 +39,16 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group flex flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] transition-shadow hover:shadow-[var(--shadow-lifted)]"
+      className="surface glass-lift group flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)]"
     >
-      <div className="relative flex aspect-[4/3.4] items-center justify-center bg-[var(--color-parchment-deep)] p-6">
+      <div className="relative flex aspect-[4/3.4] items-center justify-center bg-[radial-gradient(75%_70%_at_50%_38%,#ffffff_0%,rgba(255,255,255,0)_100%),linear-gradient(160deg,var(--color-sage)_0%,var(--color-parchment-deep)_100%)] p-6">
         {variant && product.variants.length > 0 && (
           <div className="absolute left-3 top-3 z-10">
             <DiscountBadge original={variant.originalPrice} offer={variant.offerPrice} />
           </div>
         )}
         {outOfStock && (
-          <div className="absolute right-3 top-3 z-10 rounded-full bg-[var(--color-ink)]/85 px-2.5 py-1 text-[11px] font-medium text-white">
+          <div className="absolute right-3 top-3 z-10 rounded-full bg-[var(--color-ink)]/85 px-2.5 py-1 text-[11px] font-semibold text-white">
             Out of Stock
           </div>
         )}
@@ -58,7 +58,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+            className="object-contain p-4 transition-transform duration-500 group-hover:scale-[1.04]"
             priority={index < 4}
             onError={() => setImageUnavailable(true)}
           />
@@ -69,13 +69,13 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-3 sm:p-4">
+      <div className="flex flex-1 flex-col p-3.5 sm:p-5">
         {product.category && (
-          <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-bronze)]">
+          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-bronze-dark)]">
             {product.category.name}
           </span>
         )}
-        <h3 className="mt-1 line-clamp-1 font-display text-base font-medium text-[var(--color-ink)]">
+        <h3 className="mt-1 line-clamp-2 min-h-[2.75rem] font-display text-base font-medium leading-snug text-[var(--color-ink)] sm:min-h-[3.1rem] sm:text-lg">
           {product.name}
         </h3>
         {product.reviewCount > 0 && (
@@ -85,7 +85,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
         <div className="mt-2.5 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
           {variant ? (
             <>
-              <span className="font-display text-lg font-semibold text-[var(--color-ink)]">
+              <span className="font-display text-xl font-semibold text-[var(--color-ink)]">
                 {formatINR(variant.offerPrice)}
               </span>
               {variant.originalPrice > variant.offerPrice && (
@@ -93,19 +93,19 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
                   {formatINR(variant.originalPrice)}
                 </span>
               )}
-              <span className="text-xs text-[var(--color-stone)]">/ {variant.weightLabel}</span>
+              <span className="text-xs font-medium text-[var(--color-stone)]">/ {variant.weightLabel}</span>
             </>
           ) : (
             <span className="text-sm text-[var(--color-stone)]">Unavailable</span>
           )}
         </div>
 
-        <div className="mt-auto flex flex-col items-stretch gap-2 pt-3 sm:flex-row">
+        <div className="mt-auto flex flex-col items-stretch gap-2 pt-4 sm:flex-row">
           <button
             onClick={handleAddToCart}
             disabled={outOfStock}
             className={cn(
-              "flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-canopy)] px-2 py-2.5 text-sm font-medium leading-tight text-[var(--color-canopy)] transition-colors",
+              "flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-canopy)] bg-white/60 px-2 py-2.5 text-sm font-semibold leading-tight text-[var(--color-canopy)] transition-colors",
               "hover:bg-[var(--color-canopy)] hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--color-canopy)]"
             )}
           >
@@ -115,7 +115,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
             onClick={handleBuyNow}
             disabled={outOfStock}
             className={cn(
-              "flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-canopy)] px-2 py-2.5 text-sm font-medium leading-tight text-white transition-colors",
+              "flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-canopy)] px-2 py-2.5 text-sm font-semibold leading-tight text-white shadow-[0_8px_18px_-8px_rgba(28,51,20,0.65)] transition-colors",
               "hover:bg-[var(--color-canopy-dark)] disabled:cursor-not-allowed disabled:opacity-40"
             )}
           >

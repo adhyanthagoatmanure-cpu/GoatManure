@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { PageSpinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/providers/toast-provider";
 import { formatDate } from "@/lib/utils";
+import {
+  AdminPageHeader, EmptyNote, ICON_BUTTON, ICON_BUTTON_DANGER, PANEL, TABLE_HEAD, TBODY, TD, TH, TR, TableShell,
+} from "@/components/admin/admin-ui";
 
 interface Coupon extends CouponInput {
   id: string;
@@ -56,20 +59,24 @@ export default function AdminCouponsPage() {
   if (coupons === null) return <PageSpinner />;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-medium">Coupons</h1>
-        {!showForm && (
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setShowForm(true);
-            }}
-          >
-            <Plus className="h-4 w-4" /> Create Coupon
-          </Button>
-        )}
-      </div>
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
+      <AdminPageHeader
+        icon={Tag}
+        title="Coupons"
+        description="Discount codes customers can apply at checkout."
+        actions={
+          !showForm && (
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setShowForm(true);
+              }}
+            >
+              <Plus className="h-4 w-4" aria-hidden /> Create Coupon
+            </Button>
+          )
+        }
+      />
 
       {showForm && (
         <CouponForm
@@ -86,47 +93,55 @@ export default function AdminCouponsPage() {
         />
       )}
 
-      <div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <table className="w-full text-sm">
-          <thead className="border-b border-[var(--color-border)] bg-[var(--color-parchment-deep)]/50 text-left text-xs uppercase tracking-wide text-[var(--color-stone)]">
+      <TableShell>
+        <table className="w-full min-w-[760px] text-sm">
+          <caption className="sr-only">Coupons</caption>
+          <thead className={TABLE_HEAD}>
             <tr>
-              <th className="px-4 py-3">Code</th>
-              <th className="px-4 py-3">Discount</th>
-              <th className="px-4 py-3">Min Order</th>
-              <th className="px-4 py-3">Usage</th>
-              <th className="px-4 py-3">Expires</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th scope="col" className={TH}>Code</th>
+              <th scope="col" className={TH}>Discount</th>
+              <th scope="col" className={TH}>Min Order</th>
+              <th scope="col" className={TH}>Usage</th>
+              <th scope="col" className={TH}>Expires</th>
+              <th scope="col" className={TH}>Status</th>
+              <th scope="col" className={`${TH} text-right`}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-border)]">
+          <tbody className={TBODY}>
             {coupons.map((c) => (
-              <tr key={c.id}>
-                <td className="px-4 py-3 font-medium">
-                  <span className="flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-[var(--color-bronze)]" /> {c.code}</span>
+              <tr key={c.id} className={TR}>
+                <td className={`${TD} font-medium text-ink`}>
+                  <span className="flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-bronze" aria-hidden /> {c.code}</span>
                 </td>
-                <td className="px-4 py-3">{c.discountType === "FIXED" ? `₹${c.value} flat` : `${c.value}%`}</td>
-                <td className="px-4 py-3 text-[var(--color-stone)]">₹{c.minOrderAmount}</td>
-                <td className="px-4 py-3 text-[var(--color-stone)]">{c.timesUsed}{c.usageLimit ? ` / ${c.usageLimit}` : ""}</td>
-                <td className="px-4 py-3 text-[var(--color-stone)]">{c.expiresAt ? formatDate(c.expiresAt) : "No expiry"}</td>
-                <td className="px-4 py-3">
-                  <button onClick={() => handleToggle(c)}>
+                <td className={`${TD} text-ink`}>{c.discountType === "FIXED" ? `₹${c.value} flat` : `${c.value}%`}</td>
+                <td className={`${TD} text-stone`}>₹{c.minOrderAmount}</td>
+                <td className={`${TD} text-stone`}>{c.timesUsed}{c.usageLimit ? ` / ${c.usageLimit}` : ""}</td>
+                <td className={`${TD} text-stone`}>{c.expiresAt ? formatDate(c.expiresAt) : "No expiry"}</td>
+                <td className={TD}>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle(c)}
+                    aria-label={`${c.isActive ? "Disable" : "Enable"} coupon ${c.code}`}
+                    className="rounded-full transition-opacity hover:opacity-80"
+                  >
                     <Badge tone={c.isActive ? "success" : "neutral"}>{c.isActive ? "Active" : "Disabled"}</Badge>
                   </button>
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-3">
+                <td className={TD}>
+                  <div className="flex justify-end gap-1">
                     <button
+                      type="button"
                       onClick={() => {
                         setEditing(c);
                         setShowForm(true);
                       }}
-                      className="text-[var(--color-canopy)] hover:underline"
+                      className={ICON_BUTTON}
+                      aria-label={`Edit coupon ${c.code}`}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" aria-hidden />
                     </button>
-                    <button onClick={() => handleDelete(c.id)} className="text-[var(--color-error)] hover:underline">
-                      <Trash2 className="h-4 w-4" />
+                    <button type="button" onClick={() => handleDelete(c.id)} className={ICON_BUTTON_DANGER} aria-label={`Delete coupon ${c.code}`}>
+                      <Trash2 className="h-4 w-4" aria-hidden />
                     </button>
                   </div>
                 </td>
@@ -134,8 +149,8 @@ export default function AdminCouponsPage() {
             ))}
           </tbody>
         </table>
-        {coupons.length === 0 && <p className="p-8 text-center text-sm text-[var(--color-stone)]">No coupons yet.</p>}
-      </div>
+        {coupons.length === 0 && <EmptyNote>No coupons yet.</EmptyNote>}
+      </TableShell>
     </div>
   );
 }
@@ -176,7 +191,7 @@ function CouponForm({ initial, onDone, onCancel }: { initial?: Coupon; onDone: (
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
+    <form onSubmit={handleSubmit(onSubmit)} className={`${PANEL} p-5 sm:p-6`}>
       <div className="grid gap-4 sm:grid-cols-3">
         <Input label="Coupon Code" placeholder="ADYA50" {...register("code")} error={errors.code?.message} />
         <Select label="Discount Type" {...register("discountType")}>
@@ -202,8 +217,8 @@ function CouponForm({ initial, onDone, onCancel }: { initial?: Coupon; onDone: (
         <Input label="Start Date (optional)" type="date" {...register("startsAt")} />
         <Input label="Expiry Date (optional)" type="date" {...register("expiresAt")} />
       </div>
-      <label className="mt-4 flex items-center gap-2 text-sm">
-        <input type="checkbox" {...register("isActive")} /> Active
+      <label className="mt-4 flex min-h-11 items-center gap-2.5 text-sm font-medium text-ink">
+        <input type="checkbox" className="h-5 w-5 accent-canopy" {...register("isActive")} /> Active
       </label>
       <div className="mt-5 flex gap-3">
         <Button type="submit" isLoading={isSubmitting}>{initial ? "Save Changes" : "Create Coupon"}</Button>

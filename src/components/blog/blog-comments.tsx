@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDate } from "@/lib/utils";
 
 type Comment = { id: string; authorName: string; comment: string; createdAt: string };
@@ -43,15 +45,32 @@ export function BlogComments({ postId }: { postId: string }) {
   }
 
   return (
-    <section className="mx-auto mt-14 max-w-3xl border-t border-[var(--color-border)] pt-8">
-      <h2 className="flex items-center gap-2 font-display text-2xl font-medium"><MessageCircle className="h-5 w-5 text-[var(--color-canopy)]" /> Comments ({comments.length})</h2>
-      <form onSubmit={submit} className="mt-5 grid gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:grid-cols-2">
-        <input required value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" className="rounded border border-[var(--color-border-strong)] px-3 py-2 text-sm outline-none focus:border-[var(--color-canopy)]" />
-        <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email" className="rounded border border-[var(--color-border-strong)] px-3 py-2 text-sm outline-none focus:border-[var(--color-canopy)]" />
-        <textarea required minLength={3} maxLength={2000} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Write a comment..." className="min-h-24 rounded border border-[var(--color-border-strong)] px-3 py-2 text-sm outline-none focus:border-[var(--color-canopy)] sm:col-span-2" />
-        <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-xs text-[var(--color-stone)]">{message}</span><Button type="submit" size="sm" isLoading={submitting}>Post Comment</Button></div>
+    <section aria-labelledby="blog-comments-heading" className="mx-auto mt-14 max-w-3xl border-t border-border pt-8">
+      <h2 id="blog-comments-heading" className="flex items-center gap-2.5 font-display text-2xl font-medium sm:text-3xl">
+        <MessageCircle className="h-5 w-5 text-leaf" aria-hidden /> Comments ({comments.length})
+      </h2>
+      <form onSubmit={submit} className="surface mt-5 grid gap-4 rounded-[var(--radius-lg)] p-5 sm:grid-cols-2 sm:p-6">
+        <Input label="Your name" name="comment-name" required value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" />
+        <Input label="Your email" name="comment-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+        <div className="sm:col-span-2">
+          <Textarea label="Comment" name="comment-body" required minLength={3} maxLength={2000} value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Write a comment..." />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
+          <span role="status" aria-live="polite" className="text-sm text-stone">{message}</span>
+          <Button type="submit" isLoading={submitting}>Post Comment</Button>
+        </div>
       </form>
-      <div className="mt-5 space-y-4">{comments.map((item) => <div key={item.id} className="border-b border-[var(--color-border)] pb-4"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{item.authorName}</strong><time className="text-xs text-[var(--color-stone)]">{formatDate(item.createdAt)}</time></div><p className="mt-1 text-sm leading-relaxed text-[var(--color-stone)]">{item.comment}</p></div>)}</div>
+      <ul className="mt-6 space-y-3">
+        {comments.map((item) => (
+          <li key={item.id} className="surface rounded-[var(--radius-md)] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <strong className="text-sm font-semibold text-ink">{item.authorName}</strong>
+              <time dateTime={item.createdAt} className="text-xs text-stone">{formatDate(item.createdAt)}</time>
+            </div>
+            <p className="mt-1.5 text-sm leading-relaxed text-stone">{item.comment}</p>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

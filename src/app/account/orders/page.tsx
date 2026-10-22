@@ -33,18 +33,18 @@ export default async function MyOrdersPage() {
         <Link
           key={order.id}
           href={`/account/orders/${order.id}`}
-          className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:border-[var(--color-border-strong)] sm:p-5"
+          className="surface glass-lift flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] p-4 sm:p-5"
         >
           <div>
-            <p className="font-medium">{formatOrderNumber(order.orderNumber)}</p>
-            <p className="text-xs text-[var(--color-stone)]">
+            <p className="font-semibold">{formatOrderNumber(order.orderNumber)}</p>
+            <p className="text-sm text-[var(--color-stone)]">
               {formatDate(order.createdAt)} · {order.items.length} item(s) · {PAYMENT_METHOD_LABELS[order.paymentMethod]}
             </p>
           </div>
           <div className="flex items-center gap-4">
             <Badge tone={ORDER_STATUS_TONE[order.orderStatus]}>{ORDER_STATUS_LABELS[order.orderStatus]}</Badge>
             <span className="font-display text-base font-semibold">{formatINR(order.totalAmount)}</span>
-            <ChevronRight className="h-4 w-4 text-[var(--color-stone)]" />
+            <ChevronRight className="h-4 w-4 text-[var(--color-stone)]" aria-hidden />
           </div>
         </Link>
       ))}

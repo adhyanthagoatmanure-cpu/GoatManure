@@ -88,6 +88,11 @@ When configured, every successful order sends a detailed email to
 to `WHATSAPP_ADMIN_PHONE_NUMBER`. The WhatsApp number must be in E.164 format.
 Order alerts use the approved `order_confirmation` and `new_order_admin` Utility
 templates (language code `en`); the Meta App must have these templates active.
+Customer/admin WhatsApp attempts are atomically claimed once per order to prevent
+duplicate messages from payment retries. A failed or ambiguous provider attempt
+is not retried automatically; investigate its sanitized server log/provider
+status before any manual remediation. Apply the additive migration that adds
+these per-recipient attempt markers with `npx prisma migrate deploy`.
 
 ## WhatsApp OTP registration and login
 
@@ -112,10 +117,19 @@ Do not set the two template variables until the template, sender, and
 `whatsapp_business_messaging` permission have been verified there. No credentials
 are sent to the browser.
 
-In development, the sender is a no-op mock: it makes no WhatsApp request and
-does not log or return an OTP. Automated tests inject a mocked Cloud API response.
-The development UI therefore cannot complete OTP registration or login without
-a test-only fixture that provides a verification code.
+In development, the sender is a no-op mock by default: it makes no WhatsApp
+request and does not log or return an OTP. For a local test with real delivery,
+set the server-side `WHATSAPP_OTP_REAL_DELIVERY=true` only when all provider
+settings above are configured, and only use a recipient who has explicitly
+authorized the test. This opt-in sends a real WhatsApp message and must not be
+enabled on shared development servers. Automated tests inject a mocked Cloud
+API response.
+
+The send API returns `delivery: "accepted"` only after Meta responds with a
+successful HTTP status; HTTP 202 from this application alone is not evidence of
+provider acceptance. Mock mode returns `delivery: "mocked"`, and provider
+rejections return HTTP 503 with only sanitized provider HTTP status/error-code
+fields (never the provider response body or credentials).
 
 The flow expires codes after five minutes, allows five verification attempts,
 applies persisted per-phone and per-IP rate limits, and enforces a 60-second
@@ -156,7 +170,7 @@ npm run db:deploy
 This creates the `stored_images` table. GoDaddy's MySQL account must allow table
 creation and have enough database storage for uploaded image files. Uploads
 are limited to 5 MB per image; product forms can upload up to 10 images at
-once.
+once. Profile photo uploads are limited to 2 MB.
 
 Existing image URLs and database records remain unchanged. New uploads are
 saved in MySQL and use stable `/api/storage/...` URLs. Legacy files can be

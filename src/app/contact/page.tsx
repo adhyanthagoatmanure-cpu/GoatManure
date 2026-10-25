@@ -58,7 +58,9 @@ export default function ContactPage() {
               title="Map showing the ADHYANTHA business address"
               className="h-full w-full grayscale"
               loading="lazy"
-              src={`https://www.google.com/maps?q=${encodeURIComponent(SITE.address)}&output=embed`}
+              src={SITE.mapEmbedUrl}
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           </div>
         </div>

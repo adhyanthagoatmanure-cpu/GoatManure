@@ -6,9 +6,11 @@ import { normalizeIndianMobileNumber } from "@/lib/validations/phone";
 import {
   generateWhatsAppOtp,
   generateWhatsAppOtpChallengeId,
+  findEligibleWhatsAppOtpLoginUser,
   hashWhatsAppOtp,
   hashWhatsAppOtpTicket,
   isWhatsAppOtpExpired,
+  isWhatsAppOtpChallengeReusable,
   isWhatsAppOtpHashMatch,
   isWhatsAppOtpAttemptAllowed,
   WHATSAPP_OTP_MAX_ATTEMPTS,
@@ -17,7 +19,11 @@ import {
   WHATSAPP_OTP_TTL_MS,
   type WhatsAppOtpPurpose,
 } from "./whatsapp-otp-core";
-import { sendWhatsAppOtp, WhatsAppOtpDeliveryError } from "@/server/whatsapp/otp-delivery";
+import {
+  isWhatsAppOtpRealDeliveryEnabled,
+  sendWhatsAppOtp,
+  WhatsAppOtpDeliveryError,
+} from "@/server/whatsapp/otp-delivery";
 
 const OTP_WINDOW_MS = 60 * 60 * 1000;
 const OTP_PHONE_SEND_LIMIT = 3;
@@ -59,8 +65,7 @@ function toE164(phone: string): string {
 }
 
 function localPhoneCandidates(phone: string): string[] {
-  const local = phone.startsWith("+91") ? phone.slice(3) : phone;
-  const normalized = normalizeIndianMobileNumber(local);
+  const normalized = normalizeIndianMobileNumber(phone);
   return [...new Set([normalized, `0${normalized}`, `+91${normalized}`, `91${normalized}`])];
 }
 
@@ -131,29 +136,20 @@ async function cleanExpiredOtpRecords(now: Date): Promise<void> {
 }
 
 async function findLoginUser(phone: string) {
-  const verifiedPhone = toE164(phone);
-  const verified = await prisma.user.findUnique({
-    where: { verifiedPhone },
-    select: { id: true, status: true, role: true },
+  return findEligibleWhatsAppOtpLoginUser(phone, {
+    findVerifiedPhone: (verifiedPhone) => prisma.user.findUnique({
+      where: { verifiedPhone },
+      select: { id: true, status: true, role: true },
+    }),
+    findLegacyUsers: (phoneCandidates) => prisma.user.findMany({
+      where: {
+        phone: { in: phoneCandidates },
+        verifiedPhone: null,
+      },
+      take: 2,
+      select: { id: true, status: true, role: true },
+    }),
   });
-  if (verified) {
-    return verified.status === "ACTIVE" && verified.role === "CUSTOMER" ? verified : null;
-  }
-
-  const legacyUsers = await prisma.user.findMany({
-    where: {
-      phone: { in: localPhoneCandidates(phone) },
-      verifiedPhone: null,
-    },
-    take: 2,
-    select: { id: true, status: true, role: true },
-  });
-  if (
-    legacyUsers.length !== 1 ||
-    legacyUsers[0].status !== "ACTIVE" ||
-    legacyUsers[0].role !== "CUSTOMER"
-  ) return null;
-  return legacyUsers[0];
 }
 
 async function isRegistrationAvailable(email: string, phone: string): Promise<boolean> {
@@ -168,6 +164,43 @@ async function isRegistrationAvailable(email: string, phone: string): Promise<bo
     select: { id: true },
   });
   return !existing;
+}
+
+async function findReusableRegistrationChallenge(
+  phone: string,
+  registration: WhatsAppOtpRegistrationInput,
+  now: Date,
+  resend: boolean
+): Promise<{ id: string; resendAfter: Date } | null> {
+  if (!isWhatsAppOtpRealDeliveryEnabled()) return null;
+
+  const challenge = await prisma.whatsAppOtpChallenge.findUnique({
+    where: { phone_purpose: { phone, purpose: "REGISTER" } },
+    select: {
+      id: true,
+      codeHash: true,
+      attempts: true,
+      expiresAt: true,
+      resendAfter: true,
+      verifiedAt: true,
+      consumedAt: true,
+      registrationName: true,
+      registrationEmail: true,
+      registrationPasswordHash: true,
+    },
+  });
+  if (
+    !challenge ||
+    !isWhatsAppOtpChallengeReusable(challenge, now) ||
+    (resend && challenge.resendAfter.getTime() <= now.getTime()) ||
+    challenge.registrationName !== registration.name ||
+    challenge.registrationEmail !== registration.email ||
+    !challenge.registrationPasswordHash ||
+    !(await bcrypt.compare(registration.password, challenge.registrationPasswordHash))
+  ) {
+    return null;
+  }
+  return { id: challenge.id, resendAfter: challenge.resendAfter };
 }
 
 async function upsertChallenge(input: {
@@ -236,11 +269,39 @@ export async function sendWhatsAppOtpChallenge(input: {
   purpose: WhatsAppOtpPurpose;
   ip: string;
   registration?: WhatsAppOtpRegistrationInput;
-}): Promise<{ challengeId: string; sent: boolean }> {
+  resend?: boolean;
+}): Promise<{
+  challengeId: string;
+  sent: boolean;
+  delivery: "accepted" | "mocked" | "not-sent";
+  deliveryAttempted?: boolean;
+  activeChallenge?: boolean;
+  resendAfter?: Date;
+  deliveryHttpStatus?: number;
+  deliveryProviderCode?: number;
+  notRegistered?: boolean;
+}> {
   const now = new Date();
   const candidateId = generateWhatsAppOtpChallengeId();
   const normalizedPhone = toE164(input.phone);
   const secret = getOtpSecret();
+  if (input.purpose === "REGISTER" && input.registration) {
+    const reusableChallenge = await findReusableRegistrationChallenge(
+      normalizedPhone,
+      input.registration,
+      now,
+      input.resend ?? false
+    );
+    if (reusableChallenge) {
+      return {
+        challengeId: reusableChallenge.id,
+        sent: false,
+        delivery: "not-sent",
+        activeChallenge: true,
+        resendAfter: reusableChallenge.resendAfter,
+      };
+    }
+  }
   await enforceSendLimits(normalizedPhone, input.ip, now);
   await cleanExpiredOtpRecords(now);
 
@@ -250,12 +311,20 @@ export async function sendWhatsAppOtpChallenge(input: {
     const user = await findLoginUser(input.phone);
     userId = user?.id;
     eligible = Boolean(user);
+    if (!eligible) {
+      return {
+        challengeId: candidateId,
+        sent: false,
+        delivery: "not-sent",
+        notRegistered: true,
+      };
+    }
   } else {
     eligible = Boolean(input.registration) &&
       await isRegistrationAvailable(input.registration?.email ?? "", input.phone);
   }
 
-  if (!eligible) return { challengeId: candidateId, sent: false };
+  if (!eligible) return { challengeId: candidateId, sent: false, delivery: "not-sent" };
 
   const code = generateWhatsAppOtp();
   const registration = input.registration
@@ -276,11 +345,11 @@ export async function sendWhatsAppOtpChallenge(input: {
     registration,
     now,
   });
-  if (!challengeId) return { challengeId: candidateId, sent: false };
+  if (!challengeId) return { challengeId: candidateId, sent: false, delivery: "not-sent" };
 
   try {
-    await sendWhatsAppOtp(normalizedPhone, code);
-    return { challengeId, sent: true };
+    const delivery = await sendWhatsAppOtp(normalizedPhone, code);
+    return { challengeId, sent: delivery === "sent", delivery: delivery === "sent" ? "accepted" : "mocked" };
   } catch (error) {
     await prisma.whatsAppOtpChallenge.updateMany({
       where: {
@@ -291,8 +360,19 @@ export async function sendWhatsAppOtpChallenge(input: {
     });
     const providerStatus =
       error instanceof WhatsAppOtpDeliveryError ? error.httpStatus ?? "unavailable" : "unknown";
-    console.error(`[whatsapp-otp] message delivery failed status=${providerStatus}`);
-    return { challengeId: candidateId, sent: false };
+    const providerCode =
+      error instanceof WhatsAppOtpDeliveryError ? error.providerCode ?? "unavailable" : "unknown";
+    console.error(`[whatsapp-otp] message delivery failed status=${providerStatus} code=${providerCode}`);
+    return {
+      challengeId: candidateId,
+      sent: false,
+      delivery: "not-sent",
+      deliveryAttempted: true,
+      deliveryHttpStatus:
+        error instanceof WhatsAppOtpDeliveryError ? error.httpStatus : undefined,
+      deliveryProviderCode:
+        error instanceof WhatsAppOtpDeliveryError ? error.providerCode : undefined,
+    };
   }
 }
 

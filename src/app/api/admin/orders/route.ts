@@ -39,7 +39,7 @@ export async function GET(req: Request) {
     prisma.order.count({ where: { ...where, orderStatus: undefined } }),
     prisma.order.count({ where: { ...where, orderStatus: "CONFIRMED" } }),
     prisma.order.count({ where: { ...where, orderStatus: "NEW" } }),
-    prisma.order.count({ where: { ...where, orderStatus: { in: ["CONFIRMED", "PROCESSING", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY"] } } }),
+    prisma.order.count({ where: { ...where, orderStatus: "PROCESSING" } }),
     prisma.order.count({ where: { ...where, orderStatus: "DELIVERED" } }),
     prisma.order.count({ where: { ...where, orderStatus: "CANCELLED" } }),
   ]);

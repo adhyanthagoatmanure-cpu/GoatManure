@@ -52,6 +52,10 @@ export default function AdminSettingsPage() {
       .finally(() => setLoading(false));
   }, [show]);
 
+  useEffect(() => () => {
+    if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
+  }, [preview]);
+
   function cancelChanges() {
     if (!profile) return;
     setDraft({ name: profile.name ?? "", phone: profile.phone ?? "", designation: profile.designation ?? "Administrator", bio: profile.bio ?? "" });
@@ -60,22 +64,27 @@ export default function AdminSettingsPage() {
   }
 
   async function chooseImage(file: File) {
-    if (!["image/jpeg", "image/png"].includes(file.type) || file.size > 2 * 1024 * 1024) {
-      show("Choose a JPG or PNG image smaller than 2 MB.");
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type) || file.size === 0 || file.size > 2 * 1024 * 1024) {
+      show("Choose a JPG, PNG, WEBP, or GIF image smaller than 2 MB.");
       return;
     }
     setPreview(URL.createObjectURL(file));
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await fetch("/api/account/profile/image", { method: "POST", body: formData });
-    const data = await response.json();
-    setUploading(false);
-    if (!response.ok) { show(data.error ?? "Image upload failed."); return; }
-    setImage(data.image);
-    setPreview(null);
-    router.refresh();
-    show("Profile photo uploaded.");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/account/profile/image", { method: "POST", body: formData });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) { show(data?.message ?? data?.error ?? "Image upload failed."); return; }
+      setImage(data.image);
+      setPreview(null);
+      router.refresh();
+      show("Profile photo uploaded.");
+    } catch {
+      show("Image upload failed. Check your connection and try again.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function saveChanges() {
@@ -125,7 +134,7 @@ export default function AdminSettingsPage() {
             >
               {uploading ? "Uploading..." : "Change Photo"}
             </button>
-            <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" aria-label="Choose profile photo" onChange={(event) => event.target.files?.[0] && chooseImage(event.target.files[0])} />
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" aria-label="Choose profile photo" onChange={(event) => event.target.files?.[0] && chooseImage(event.target.files[0])} />
           </div>
           <div className="mt-6 space-y-1 border-t border-border pt-4">
             {sections.map(({ label, icon: Icon }, index) => (

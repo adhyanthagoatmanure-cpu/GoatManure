@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -23,6 +23,7 @@ export default function SignupPage() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const sendingRef = useRef(false);
 
   const {
     register,
@@ -43,7 +44,13 @@ export default function SignupPage() {
     return () => window.clearInterval(timer);
   }, [resendAt]);
 
-  async function sendCode(values: SignupInput) {
+  async function sendCode(values: SignupInput, resend = false) {
+    if (
+      sendingRef.current ||
+      isSending ||
+      (resend && (challengeId === null || secondsLeft > 0))
+    ) return;
+    sendingRef.current = true;
     setServerError(null);
     setStatusMessage(null);
     setIsSending(true);
@@ -51,19 +58,41 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/whatsapp-otp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ purpose: "REGISTER", registration: values }),
+        body: JSON.stringify({
+          purpose: "REGISTER",
+          registration: values,
+          ...(resend ? { resend: true } : {}),
+        }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         setServerError(data?.error ?? "Unable to request a verification code.");
         return;
       }
+      if (data?.activeChallenge === true && typeof data?.challengeId === "string") {
+        setChallengeId(data.challengeId);
+        setStatusMessage(
+          data.message ?? "A recent verification code is still active. Enter that code; no new message was sent."
+        );
+        const resendTime = Date.parse(data.resendAfter);
+        setResendAt(Number.isFinite(resendTime) ? resendTime : Date.now() + 60_000);
+        return;
+      }
+      if (
+        data?.delivery === "not-sent" ||
+        data?.delivery === "mocked" ||
+        typeof data?.challengeId !== "string"
+      ) {
+        setStatusMessage(data.message ?? "No WhatsApp message was sent.");
+        return;
+      }
       setChallengeId(data.challengeId);
-      setStatusMessage(data.message ?? "If eligible, a verification code may be sent. If you do not receive one, wait for the resend timer and try again.");
+      setStatusMessage(data.message ?? "Meta accepted the WhatsApp message request. Check WhatsApp for the code.");
       setResendAt(Date.now() + 60_000);
     } catch {
       setServerError("Unable to request a verification code. Please check your connection.");
     } finally {
+      sendingRef.current = false;
       setIsSending(false);
     }
   }
@@ -151,11 +180,11 @@ export default function SignupPage() {
       {challengeId && (
         <div className="mt-4 flex flex-col gap-3">
           <Input
+            id="signup-whatsapp-otp-code"
             label="6-digit WhatsApp verification code"
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={6}
             value={code}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
             error={serverError ?? undefined}
@@ -167,7 +196,7 @@ export default function SignupPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => sendCode(getValues())}
+            onClick={() => sendCode(getValues(), true)}
             isLoading={isSending}
             disabled={secondsLeft > 0}
           >

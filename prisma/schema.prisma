@@ -8,31 +8,70 @@ datasource db {
 }
 
 model User {
-  id            String               @id @default(cuid())
-  name          String?
-  email         String               @unique
-  emailVerified DateTime?
-  phone         String?
-  passwordHash  String?
-  image         String?
-  role          Role                 @default(CUSTOMER)
-  status        UserStatus           @default(ACTIVE)
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  bio           String?              @db.VarChar(500)
-  designation   String?
-  accounts      Account[]
-  addresses     Address[]
-  cart          Cart?
-  couponUsages  CouponUsage[]
-  orders        Order[]
-  resetTokens   PasswordResetToken[]
-  reviews       Review[]
-  sessions      Session[]
-  wishlist      WishlistItem[]
+  id                    String                 @id @default(cuid())
+  name                  String?
+  email                 String                 @unique
+  emailVerified         DateTime?
+  phone                 String?
+  passwordHash          String?
+  image                 String?
+  verifiedPhone         String?                @unique(map: "users_verifiedPhone_key")
+  phoneVerifiedAt       DateTime?
+  role                  Role                   @default(CUSTOMER)
+  status                UserStatus             @default(ACTIVE)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  bio                   String?                @db.VarChar(500)
+  designation           String?
+  accounts              Account[]
+  addresses             Address[]
+  cart                  Cart?
+  couponUsages          CouponUsage[]
+  orders                Order[]
+  resetTokens           PasswordResetToken[]
+  reviews               Review[]
+  sessions              Session[]
+  wishlist              WishlistItem[]
+  whatsAppOtpChallenges WhatsAppOtpChallenge[]
 
   @@index([role])
+  @@index([phone], map: "users_phone_idx")
   @@map("users")
+}
+
+model WhatsAppOtpChallenge {
+  id                       String             @id
+  phone                    String             @db.VarChar(16)
+  purpose                  WhatsAppOtpPurpose
+  codeHash                 String?            @db.Char(64)
+  userId                   String?
+  registrationName         String?
+  registrationEmail        String?
+  registrationPasswordHash String?
+  attempts                 Int                @default(0)
+  resendAfter              DateTime           @db.DateTime(3)
+  expiresAt                DateTime           @db.DateTime(3)
+  verifiedAt               DateTime?          @db.DateTime(3)
+  authTicketHash           String?            @unique(map: "whatsapp_otp_challenges_authTicketHash_key") @db.Char(64)
+  authTicketExpiresAt      DateTime?          @db.DateTime(3)
+  consumedAt               DateTime?          @db.DateTime(3)
+  createdAt                DateTime           @default(now()) @db.DateTime(3)
+  updatedAt                DateTime           @updatedAt @db.DateTime(3)
+  user                     User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([phone, purpose], map: "whatsapp_otp_challenges_phone_purpose_key")
+  @@index([expiresAt], map: "whatsapp_otp_challenges_expiresAt_idx")
+  @@index([userId], map: "whatsapp_otp_challenges_userId_idx")
+  @@map("whatsapp_otp_challenges")
+}
+
+model WhatsAppOtpRateLimit {
+  bucketKey       String   @id @db.Char(64)
+  windowStartedAt DateTime @db.DateTime(3)
+  count           Int      @default(0)
+  updatedAt       DateTime @updatedAt @db.DateTime(3)
+
+  @@map("whatsapp_otp_rate_limits")
 }
 
 model AdminNotification {
@@ -300,6 +339,8 @@ model Order {
   shipmentStatus    ShipmentStatus       @default(NOT_CREATED)
   customerNote      String?
   adminNote         String?
+  customerWhatsAppNotificationAttemptedAt DateTime? @db.DateTime(3)
+  adminWhatsAppNotificationAttemptedAt    DateTime? @db.DateTime(3)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   couponUsage       CouponUsage?
@@ -473,6 +514,16 @@ model NewsletterSubscriber {
   @@map("newsletter_subscribers")
 }
 
+model StoredImage {
+  key         String   @id @db.VarChar(255)
+  body        Bytes    @db.LongBlob
+  contentType String   @db.VarChar(100)
+  createdAt   DateTime @default(now()) @db.DateTime(3)
+
+  @@index([createdAt], map: "stored_images_createdAt_idx")
+  @@map("stored_images")
+}
+
 enum Role {
   CUSTOMER
   ADMIN
@@ -537,9 +588,15 @@ enum BlogStatus {
 
 enum payment_intents_status {
   PENDING
+  PROCESSING
   PAID
   FAILED
   REFUNDED
   COD_PENDING
   COD_COLLECTED
+}
+
+enum WhatsAppOtpPurpose {
+  REGISTER
+  LOGIN
 }

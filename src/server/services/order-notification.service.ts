@@ -6,6 +6,10 @@ import {
   WhatsAppApiError,
 } from "@/server/whatsapp/whatsapp-service";
 import { normalizeWhatsAppPhone } from "@/server/whatsapp/phone";
+import {
+  getOrderWhatsAppNotificationClaim,
+  isOrderReadyForPurchaseNotification,
+} from "./order-notification-core";
 
 type NotificationChannel = "customer-email" | "customer-whatsapp" | "admin-email" | "admin-whatsapp";
 
@@ -42,6 +46,11 @@ export async function notifyOrder(orderId: string): Promise<void> {
     where: { id: orderId },
     include: { items: true, user: true },
   });
+  if (!isOrderReadyForPurchaseNotification(order)) {
+    logSkipped(orderId, "customer-whatsapp", "order-not-confirmed-or-payment-unverified");
+    logSkipped(orderId, "admin-whatsapp", "order-not-confirmed-or-payment-unverified");
+    return;
+  }
   const email = order.user?.email ?? order.guestEmail;
   const name = order.user?.name ?? order.guestName;
   const trackUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/track-order/${order.id}`;
@@ -92,22 +101,31 @@ export async function notifyOrder(orderId: string): Promise<void> {
   }
 
   if (customerPhone) {
-    console.info(`[WHATSAPP] customer notification started order=${orderId} phone=${maskPhone(customerPhone)}`);
-    attempts.push({
-      channel: "customer-whatsapp",
-      destination: maskPhone(customerPhone),
-      promise: sendCustomerOrderWhatsApp({
-        orderNumber: notification.orderNumber,
-        customerName: notification.customerName,
-        customerPhone,
-        totalAmount: order.totalAmount,
-        items: order.items.map((item) => ({
-          productName: item.productName,
-          weightLabel: item.weightLabel,
-          quantity: item.quantity,
-        })),
-      }),
+    const claim = getOrderWhatsAppNotificationClaim("customer", order.paymentMethod, new Date());
+    const claimed = await prisma.order.updateMany({
+      where: { id: orderId, ...claim.where },
+      data: claim.data,
     });
+    if (claimed.count === 1) {
+      console.info(`[WHATSAPP] customer notification started order=${orderId} phone=${maskPhone(customerPhone)}`);
+      attempts.push({
+        channel: "customer-whatsapp",
+        destination: maskPhone(customerPhone),
+        promise: sendCustomerOrderWhatsApp({
+          orderNumber: notification.orderNumber,
+          customerName: notification.customerName,
+          customerPhone,
+          totalAmount: order.totalAmount,
+          items: order.items.map((item) => ({
+            productName: item.productName,
+            weightLabel: item.weightLabel,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+    } else {
+      logSkipped(orderId, "customer-whatsapp", "notification-already-attempted");
+    }
   } else {
     logSkipped(orderId, "customer-whatsapp", "invalid-or-missing-phone");
   }
@@ -128,21 +146,30 @@ export async function notifyOrder(orderId: string): Promise<void> {
     process.env.WHATSAPP_ADMIN_PHONE?.trim() || process.env.WHATSAPP_ADMIN_PHONE_NUMBER?.trim()
   );
   if (adminPhone) {
-    console.info(`[WHATSAPP] admin notification started order=${orderId} phone=${maskPhone(adminPhone)}`);
-    attempts.push({
-      channel: "admin-whatsapp",
-      destination: maskPhone(adminPhone),
-      promise: sendAdminOrderWhatsApp({
-        orderNumber: notification.orderNumber,
-        customerName: notification.customerName,
-        totalAmount: notification.totalAmount,
-        items: order.items.map((item) => ({
-          productName: item.productName,
-          weightLabel: item.weightLabel,
-          quantity: item.quantity,
-        })),
-      }),
+    const claim = getOrderWhatsAppNotificationClaim("admin", order.paymentMethod, new Date());
+    const claimed = await prisma.order.updateMany({
+      where: { id: orderId, ...claim.where },
+      data: claim.data,
     });
+    if (claimed.count === 1) {
+      console.info(`[WHATSAPP] admin notification started order=${orderId} phone=${maskPhone(adminPhone)}`);
+      attempts.push({
+        channel: "admin-whatsapp",
+        destination: maskPhone(adminPhone),
+        promise: sendAdminOrderWhatsApp({
+          orderNumber: notification.orderNumber,
+          customerName: notification.customerName,
+          totalAmount: order.totalAmount,
+          items: order.items.map((item) => ({
+            productName: item.productName,
+            weightLabel: item.weightLabel,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+    } else {
+      logSkipped(orderId, "admin-whatsapp", "notification-already-attempted");
+    }
   } else {
     logSkipped(orderId, "admin-whatsapp", "invalid-or-missing-admin-phone");
   }
@@ -156,7 +183,7 @@ export async function notifyOrder(orderId: string): Promise<void> {
         const recipient = attempt.channel === "customer-whatsapp" ? "customer" : "admin";
         const messageId = delivery.messageId?.replace(/[^\w.-]/g, "").slice(0, 128);
         console.info(
-          `[WHATSAPP] ${recipient} notification sent order=${orderId} phone=${attempt.destination}${messageId ? ` messageId=${messageId}` : ""}`
+          `[WHATSAPP] ${recipient} notification accepted by Meta order=${orderId} phone=${attempt.destination}${messageId ? ` messageId=${messageId}` : ""}`
         );
         return;
       }
@@ -177,7 +204,7 @@ export async function notifyOrder(orderId: string): Promise<void> {
             ? ` httpStatus=${result.reason.httpStatus}${result.reason.errorCode ? ` errorCode=${String(result.reason.errorCode).replace(/[^\w.-]/g, "").slice(0, 40)}` : ""}`
             : "";
         console.error(
-          `[WHATSAPP] ${recipient} notification failed order=${orderId} phone=${attempt.destination}${metaDetails} error=${errorMessage(result.reason)}`
+          `[WHATSAPP] ${recipient} notification failed order=${orderId} phone=${attempt.destination}${metaDetails}`
         );
         return;
       }

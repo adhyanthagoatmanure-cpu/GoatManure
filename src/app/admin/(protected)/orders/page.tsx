@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, Eye, FileDown,
-  MapPin, MessageSquare, Package, Phone, Search, ShoppingCart, Truck, X,
+  FileSpreadsheet, FileText, MapPin, MessageSquare, Package, Phone, Search, ShoppingCart, Truck, X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import type { OrderStatus } from "@prisma/client";
 import {
   AdminPageHeader, FIELD, ICON_BUTTON, PANEL, PANEL_GLASS, TABLE_HEAD, TBODY, TD, TH, TR,
 } from "@/components/admin/admin-ui";
+import jsPDF from "jspdf";
+import * as XLSX from "xlsx";
 
 type OrderRow = {
   id: string; orderNumber: string; createdAt: string;
@@ -48,6 +50,7 @@ export default function AdminOrdersPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<Detail | null>(null);
+  const [showExportOptions, setShowExportOptions] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -90,18 +93,85 @@ export default function AdminOrdersPage() {
     }
   }
 
-  function exportOrders() {
+  function exportOrders(format: "pdf" | "excel") {
     if (!orders?.length) return;
-    const rows = [["Order ID", "Customer", "Date", "Amount", "Status", "Payment"], ...orders.map((order) => [
-      order.orderNumber, order.user?.name ?? order.guestName ?? "Guest", order.createdAt, String(order.totalAmount),
-      ORDER_STATUS_LABELS[order.orderStatus], PAYMENT_METHOD_LABELS[order.paymentMethod],
-    ])];
-    const csv = rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(",")).join("\n");
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    link.download = "adhyantha-orders.csv";
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const date = new Date().toISOString().slice(0, 10);
+    const rows = orders.map((order) => ({
+      "Order ID": formatOrderNumber(order.orderNumber),
+      Customer: order.user?.name ?? order.guestName ?? "Guest",
+      Email: order.user?.email ?? order.guestEmail ?? "",
+      Phone: order.user?.phone ?? order.guestPhone ?? "",
+      "Order Date": formatDate(order.createdAt),
+      "Item Count": order.items.length,
+      "Total Amount": order.totalAmount,
+      "Order Status": ORDER_STATUS_LABELS[order.orderStatus],
+      "Payment Method": PAYMENT_METHOD_LABELS[order.paymentMethod],
+      "Payment Status": PAYMENT_STATUS_LABELS[order.paymentStatus],
+    }));
+
+    try {
+      if (format === "excel") {
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+        XLSX.writeFile(workbook, `adhyantha-orders-${date}.xlsx`);
+      } else {
+        const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+        const columns = [
+          { title: "Order ID", x: 10, width: 28 },
+          { title: "Customer", x: 39, width: 37 },
+          { title: "Phone", x: 77, width: 28 },
+          { title: "Date", x: 106, width: 27 },
+          { title: "Items", x: 134, width: 12 },
+          { title: "Amount", x: 147, width: 27 },
+          { title: "Status", x: 175, width: 30 },
+          { title: "Payment", x: 206, width: 24 },
+          { title: "Pay status", x: 231, width: 27 },
+        ];
+        let y = 16;
+        const drawHeader = () => {
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(8);
+          columns.forEach(({ title, x }) => pdf.text(title, x, y));
+          y += 6;
+          pdf.setFont("helvetica", "normal");
+        };
+        pdf.setFontSize(14);
+        pdf.text("ADHYANTHA Order Details", 10, y);
+        pdf.setFontSize(8);
+        pdf.text(`Exported: ${new Date().toLocaleDateString("en-IN")}`, 10, y + 5);
+        y += 14;
+        drawHeader();
+        orders.forEach((order) => {
+          if (y > 195) {
+            pdf.addPage();
+            y = 16;
+            drawHeader();
+          }
+          const values = [
+            formatOrderNumber(order.orderNumber),
+            order.user?.name ?? order.guestName ?? "Guest",
+            order.user?.phone ?? order.guestPhone ?? "-",
+            formatDate(order.createdAt),
+            String(order.items.length),
+            formatINR(order.totalAmount),
+            ORDER_STATUS_LABELS[order.orderStatus],
+            PAYMENT_METHOD_LABELS[order.paymentMethod],
+            PAYMENT_STATUS_LABELS[order.paymentStatus],
+          ];
+          values.forEach((value, index) => {
+            const column = columns[index];
+            pdf.text(value.slice(0, Math.max(1, Math.floor(column.width / 1.8))), column.x, y);
+          });
+          y += 6;
+        });
+        pdf.save(`adhyantha-orders-${date}.pdf`);
+      }
+    } catch {
+      window.alert(`Unable to export orders as ${format === "excel" ? "Excel" : "PDF"}. Please try again.`);
+    } finally {
+      setShowExportOptions(false);
+    }
   }
 
   if (orders === null) return <PageSpinner />;
@@ -170,8 +240,36 @@ export default function AdminOrdersPage() {
           <input type="date" value={to} onChange={(event) => setTo(event.target.value)} aria-label="To date" className="min-w-0 bg-transparent text-xs text-ink focus:outline-none" />
         </div>
         <Button onClick={() => void load()} variant="outline"><CalendarDays className="h-4 w-4" aria-hidden />Apply</Button>
-        <Button onClick={exportOrders}><FileDown className="h-4 w-4" aria-hidden />Export</Button>
+        <Button onClick={() => setShowExportOptions(true)} disabled={!orders.length}>
+          <FileDown className="h-4 w-4" aria-hidden />Export
+        </Button>
       </div>
+
+      {showExportOptions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowExportOptions(false)}>
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="order-export-title"
+            className={cn(PANEL, "w-full max-w-sm space-y-4 p-5")}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div>
+              <h2 id="order-export-title" className="font-display text-lg font-semibold text-ink">Export orders</h2>
+              <p className="mt-1 text-sm text-stone">Choose a format for the currently filtered orders.</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button type="button" onClick={() => exportOrders("pdf")}>
+                <FileText className="h-4 w-4" aria-hidden />Export as PDF
+              </Button>
+              <Button type="button" variant="outline" onClick={() => exportOrders("excel")}>
+                <FileSpreadsheet className="h-4 w-4" aria-hidden />Export as Excel
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setShowExportOptions(false)}>Cancel</Button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <div className={cn("grid gap-5", selected && "xl:grid-cols-[minmax(0,1fr)_380px]")}>
         <section className={cn(PANEL, "min-w-0 overflow-hidden")}>
@@ -248,7 +346,12 @@ function OrderDetailsPanel({ order, statusLabel, onClose, onUpdateStatus }: { or
   const customerName = order.user?.name ?? order.guestName ?? "Guest";
   const phone = order.user?.phone ?? order.guestPhone ?? "";
   const email = order.user?.email ?? order.guestEmail ?? "";
-  const nextStatus = order.orderStatus === "NEW" ? "PROCESSING" : order.orderStatus === "PROCESSING" ? "DELIVERED" : null;
+  const nextStatus =
+    order.orderStatus === "NEW" || order.orderStatus === "CONFIRMED"
+      ? "PROCESSING"
+      : order.orderStatus === "PROCESSING"
+        ? "DELIVERED"
+        : null;
   return (
     <aside aria-label="Order details" className={cn(PANEL, "overflow-hidden xl:sticky xl:top-4 xl:max-h-[calc(100vh-110px)] xl:overflow-y-auto")}>
       <div data-on-dark className="bg-canopy-dark p-5 text-white">

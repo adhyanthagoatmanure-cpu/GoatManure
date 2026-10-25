@@ -35,6 +35,9 @@ export async function POST(req: Request) {
   if (paymentIntent.userId && paymentIntent.userId !== session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized payment intent" }, { status: 401 });
   }
+  if (paymentIntent.status === "PAID" && paymentIntent.createdOrderId) {
+    return NextResponse.json({ ok: true, orderId: paymentIntent.createdOrderId });
+  }
   if (paymentIntent.status !== "PENDING" || paymentIntent.expiresAt < new Date()) {
     return NextResponse.json({ error: "This payment session has expired" }, { status: 400 });
   }
@@ -49,21 +52,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payment verification failed" }, { status: 400 });
   }
 
-  const result = await createOrder({
-    userId: paymentIntent.userId,
-    guestName: paymentIntent.guestName ?? undefined,
-    guestEmail: paymentIntent.guestEmail ?? undefined,
-    guestPhone: paymentIntent.guestPhone ?? undefined,
-    addressId: paymentIntent.addressId ?? undefined,
-    newAddress: (paymentIntent.newAddress ?? undefined) as AddressInput | undefined,
-    saveNewAddress: Boolean(paymentIntent.userId && paymentIntent.newAddress),
-    items: paymentIntent.items as unknown as RawCartLine[],
-    couponCode: paymentIntent.couponCode ?? undefined,
-    paymentMethod: "ONLINE",
-    customerNote: paymentIntent.customerNote ?? undefined,
+  const claimed = await prisma.paymentIntent.updateMany({
+    where: { id: paymentIntent.id, status: "PENDING" },
+    data: { status: "PROCESSING" },
   });
+  if (claimed.count !== 1) {
+    const latest = await prisma.paymentIntent.findUnique({ where: { id: paymentIntent.id } });
+    if (latest?.status === "PAID" && latest.createdOrderId) {
+      return NextResponse.json({ ok: true, orderId: latest.createdOrderId });
+    }
+    return NextResponse.json({ error: "Payment verification is already being processed." }, { status: 409 });
+  }
 
+  let result: Awaited<ReturnType<typeof createOrder>>;
+  try {
+    result = await createOrder({
+      userId: paymentIntent.userId,
+      guestName: paymentIntent.guestName ?? undefined,
+      guestEmail: paymentIntent.guestEmail ?? undefined,
+      guestPhone: paymentIntent.guestPhone ?? undefined,
+      addressId: paymentIntent.addressId ?? undefined,
+      newAddress: (paymentIntent.newAddress ?? undefined) as AddressInput | undefined,
+      saveNewAddress: Boolean(paymentIntent.userId && paymentIntent.newAddress),
+      items: paymentIntent.items as unknown as RawCartLine[],
+      couponCode: paymentIntent.couponCode ?? undefined,
+      paymentMethod: "ONLINE",
+      customerNote: paymentIntent.customerNote ?? undefined,
+    });
+  } catch (error) {
+    await prisma.paymentIntent.updateMany({
+      where: { id: paymentIntent.id, status: "PROCESSING" },
+      data: { status: "PENDING" },
+    });
+    throw error;
+  }
   if (!result.ok) {
+    await prisma.paymentIntent.updateMany({
+      where: { id: paymentIntent.id, status: "PROCESSING" },
+      data: { status: "PENDING" },
+    });
     return NextResponse.json({ error: "The order could not be created after payment. Please contact support." }, { status: 409 });
   }
 

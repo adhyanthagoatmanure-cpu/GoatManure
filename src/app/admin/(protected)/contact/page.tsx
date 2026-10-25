@@ -23,7 +23,6 @@ type ContactValues = z.infer<typeof contactFormSchema>;
 type Message = ContactValues & { id: string; isRead: boolean; createdAt: string };
 
 const address = SITE.address;
-const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(SITE.address)}&output=embed`;
 
 export default function AdminContactPage() {
   const { show } = useToast();
@@ -76,7 +75,7 @@ export default function AdminContactPage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <ContactCard icon={Phone} title="Phone" value={SITE.supportPhone} note="Mon - Sat, 9 AM - 6 PM" />
         <ContactCard icon={Mail} title="Email" value={SITE.supportEmail} note="We reply within 24 hours" />
-        <ContactCard icon={MapPin} title="Our Address" value={address} note="Coimbatore, Tamil Nadu" />
+        <ContactCard icon={MapPin} title="Our Address" value={address} note={SITE.locationLabel} />
         <ContactCard icon={MessageCircle} title="WhatsApp" value={SITE.whatsappPhone} note="Chat with us →" />
       </div>
 
@@ -103,7 +102,14 @@ export default function AdminContactPage() {
           <section className={cn(PANEL, "p-5")}>
             <SectionHeading icon={MapPin} title="Our Location" subtitle="Visit us at our farm and processing unit." />
             <div className="mt-4 aspect-[4/3] overflow-hidden rounded-[var(--radius-md)] border border-border bg-sage">
-              <iframe title="ADHYANTHA location" className="h-full w-full grayscale-[0.2]" loading="lazy" src={mapUrl} />
+              <iframe
+                title="ADHYANTHA location"
+                className="h-full w-full grayscale-[0.2]"
+                loading="lazy"
+                src={SITE.mapEmbedUrl}
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
             </div>
             <div className="mt-4 flex items-start justify-between gap-3 rounded-[var(--radius-md)] bg-sage/60 p-3">
               <div className="flex gap-2">
@@ -114,7 +120,7 @@ export default function AdminContactPage() {
                 </div>
               </div>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Coimbatore%2CTamil+Nadu%2CIndia"
+                href={SITE.mapDirectionsUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-sm)] bg-canopy px-3 text-xs font-semibold text-white transition-colors hover:bg-canopy-dark sm:min-h-9"

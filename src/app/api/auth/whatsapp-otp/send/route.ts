@@ -7,7 +7,10 @@ import {
   sendWhatsAppOtpChallenge,
   WhatsAppOtpError,
 } from "@/server/auth/whatsapp-otp";
-import { isWhatsAppOtpConfigured } from "@/server/whatsapp/otp-delivery";
+import {
+  isWhatsAppOtpConfigured,
+  isWhatsAppOtpRealDeliveryEnabled,
+} from "@/server/whatsapp/otp-delivery";
 
 const sendRequestSchema = z.discriminatedUnion("purpose", [
   z.object({
@@ -17,13 +20,9 @@ const sendRequestSchema = z.discriminatedUnion("purpose", [
   z.object({
     purpose: z.literal("REGISTER"),
     registration: signupSchema,
+    resend: z.boolean().optional(),
   }).strict(),
 ]);
-
-const GENERIC_SEND_MESSAGE =
-  process.env.NODE_ENV === "production"
-    ? "If this number is eligible, a verification code may be sent. If you do not receive one, wait for the resend timer and try again."
-    : "Development mock mode: no WhatsApp message was sent and no OTP is displayed.";
 
 export async function POST(req: Request) {
   const length = Number(req.headers.get("content-length") ?? 0);
@@ -64,10 +63,54 @@ export async function POST(req: Request) {
       purpose: parsed.data.purpose,
       ip: getWhatsAppOtpRequestIp(req.headers),
       registration,
+      resend: parsed.data.purpose === "REGISTER" ? parsed.data.resend : undefined,
     });
 
+    if (
+      parsed.data.purpose === "LOGIN" &&
+      result.notRegistered &&
+      process.env.NODE_ENV !== "production"
+    ) {
+      return NextResponse.json(
+        { error: "No active customer account was found for this number. Sign up or use the phone number on your account." },
+        { status: 404 }
+      );
+    }
+
+    if (
+      result.delivery === "not-sent" &&
+      result.deliveryAttempted &&
+      isWhatsAppOtpRealDeliveryEnabled()
+    ) {
+      return NextResponse.json(
+        {
+          error: "Meta did not accept the WhatsApp message. Check the server configuration and delivery logs before retrying.",
+          ...(result.deliveryHttpStatus ? { providerStatus: result.deliveryHttpStatus } : {}),
+          ...(result.deliveryProviderCode ? { providerCode: result.deliveryProviderCode } : {}),
+        },
+        { status: 503 }
+      );
+    }
+
+    const message = result.activeChallenge
+      ? "A verification code was already requested recently. Enter that code here; no additional WhatsApp message was sent."
+      : result.delivery === "mocked"
+      ? "Development mock mode: no WhatsApp message was sent and no OTP is displayed."
+      : result.delivery === "accepted"
+        ? "Meta accepted the WhatsApp message request. Check WhatsApp for the code; delivery may still be delayed."
+        : result.delivery === "not-sent"
+          ? "No WhatsApp message was sent for this request. If the number is eligible, wait and try again."
+        : "If this number is eligible, a verification code may be sent. If you do not receive one, wait for the resend timer and try again.";
+
     return NextResponse.json(
-      { challengeId: result.challengeId, message: GENERIC_SEND_MESSAGE },
+      {
+        challengeId: result.challengeId,
+        delivery: result.delivery,
+        message,
+        ...(result.activeChallenge
+          ? { activeChallenge: true, resendAfter: result.resendAfter?.toISOString() }
+          : {}),
+      },
       { status: 202 }
     );
   } catch (error) {

@@ -3,15 +3,23 @@ import { normalizeWhatsAppPhone } from "./phone";
 export class WhatsAppOtpDeliveryError extends Error {
   constructor(
     readonly category: "not-configured" | "invalid-configuration" | "provider-failure",
-    readonly httpStatus?: number
+    readonly httpStatus?: number,
+    readonly providerCode?: number
   ) {
     super("WhatsApp OTP delivery is unavailable");
     this.name = "WhatsAppOtpDeliveryError";
   }
 }
 
+export function isWhatsAppOtpRealDeliveryEnabled(): boolean {
+  return (
+    process.env.NODE_ENV === "production" ||
+    process.env.WHATSAPP_OTP_REAL_DELIVERY?.trim() === "true"
+  );
+}
+
 export function isWhatsAppOtpConfigured(): boolean {
-  if (process.env.NODE_ENV !== "production") return true;
+  if (!isWhatsAppOtpRealDeliveryEnabled()) return true;
 
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
@@ -36,8 +44,8 @@ export async function sendWhatsAppOtp(
   code: string,
   options: { fetcher?: typeof fetch; production?: boolean } = {}
 ): Promise<"mocked" | "sent"> {
-  const production = options.production ?? process.env.NODE_ENV === "production";
-  if (!production) return "mocked";
+  const realDelivery = options.production ?? isWhatsAppOtpRealDeliveryEnabled();
+  if (!realDelivery) return "mocked";
 
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
@@ -99,7 +107,16 @@ export async function sendWhatsAppOtp(
   }
 
   if (!response.ok) {
-    throw new WhatsAppOtpDeliveryError("provider-failure", response.status);
+    let providerCode: number | undefined;
+    try {
+      const payload = await response.clone().json() as {
+        error?: { code?: unknown };
+      };
+      if (typeof payload.error?.code === "number") providerCode = payload.error.code;
+    } catch {
+      // A non-JSON provider response still has a useful HTTP status.
+    }
+    throw new WhatsAppOtpDeliveryError("provider-failure", response.status, providerCode);
   }
 
   return "sent";

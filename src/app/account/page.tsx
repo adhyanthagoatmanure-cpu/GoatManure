@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
+import { ProfileImageUploadButton } from "@/components/account/profile-image-upload-button";
 import { Mail, Phone, Calendar } from "lucide-react";
 
 export default async function ProfilePage() {
@@ -13,15 +15,26 @@ export default async function ProfilePage() {
   return (
     <section aria-labelledby="profile-heading" className="glass rounded-[var(--radius-lg)] p-6 sm:p-8">
       <div className="flex items-center gap-4">
-        <span
-          aria-hidden
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,var(--color-leaf),var(--color-canopy-dark))] font-display text-2xl font-semibold text-white ring-4 ring-white/70 shadow-[var(--shadow-soft)]"
-        >
-          {user.name?.[0]?.toUpperCase() ?? "U"}
-        </span>
+        {user.image ? (
+          <Image
+            src={user.image}
+            alt={`${user.name ?? "User"} profile`}
+            width={64}
+            height={64}
+            className="h-16 w-16 shrink-0 rounded-full object-cover ring-4 ring-white/70 shadow-[var(--shadow-soft)]"
+          />
+        ) : (
+          <span
+            aria-hidden
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,var(--color-leaf),var(--color-canopy-dark))] font-display text-2xl font-semibold text-white ring-4 ring-white/70 shadow-[var(--shadow-soft)]"
+          >
+            {user.name?.[0]?.toUpperCase() ?? "U"}
+          </span>
+        )}
         <div className="min-w-0">
           <h2 id="profile-heading" className="break-words font-display text-2xl font-semibold">{user.name}</h2>
           <p className="text-sm text-stone">Member since {formatDate(user.createdAt)}</p>
+          <ProfileImageUploadButton />
         </div>
       </div>
 

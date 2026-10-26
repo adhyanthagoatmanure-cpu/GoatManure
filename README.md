@@ -334,12 +334,13 @@ production.
    `migrate dev`, `db push`, or any reset command on production.
 
 4. Production seeding is disabled unless explicitly enabled. Only after
-   approving the production seed, set `ALLOW_PRODUCTION_SEED=true` and a strong
-   `INITIAL_ADMIN_PASSWORD` in GoDaddy's private environment settings, run
-   `npm run db:seed` once, then remove both settings. Production seeding does
-   not create demo customer accounts or demo testimonials. The seed does not
-   overwrite existing users or business data when run again. On later approved
-   runs, the existing admin means `INITIAL_ADMIN_PASSWORD` is not needed.
+   approving the production seed, set `ALLOW_PRODUCTION_SEED=true` in GoDaddy's
+   private environment settings and run `npm run db:seed` once, then remove the
+   setting. Set a strong `INITIAL_ADMIN_PASSWORD` only when creating the admin
+   account for the first time. Production seeding does not create demo customer
+   accounts or demo testimonials. It repairs the configured admin's `ADMIN`
+   role and verified-email status without changing that account's password;
+   catalog seeding remains idempotent.
 
 Do not run migrations against an existing GoDaddy database until its data is
 backed up and the current `_prisma_migrations` history has been checked. The

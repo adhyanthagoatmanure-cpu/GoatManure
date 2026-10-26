@@ -100,17 +100,8 @@ export function AuthShell({
   // `-mb-24` cancels the footer's top margin so the photo panel meets the footer without a blank band.
   return (
     <div className="-mb-24 flex min-h-[calc(100svh-5rem)] w-full flex-col lg:flex-row">
-      {isLogin ? (
-        <>
-          {visualPanel}
-          {formPanel}
-        </>
-      ) : (
-        <>
-          {formPanel}
-          {visualPanel}
-        </>
-      )}
+      {visualPanel}
+      {formPanel}
     </div>
   );
 }

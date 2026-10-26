@@ -26,9 +26,6 @@ async function main() {
     where: { email: ADMIN_EMAIL },
     select: { id: true },
   });
-  const adminPasswordHash = existingAdmin
-    ? undefined
-    : await hashInitialAdminPassword();
 
   console.log("Seeding ADHYANTHA database…");
 
@@ -162,15 +159,19 @@ async function main() {
   });
 
   // ── Admin user ───────────────────────────────────────────────────────
-  if (adminPasswordHash) {
-    await prisma.user.upsert({
+  if (existingAdmin) {
+    await prisma.user.update({
       where: { email: ADMIN_EMAIL },
-      update: {},
-      create: {
+      data: { role: "ADMIN", emailVerified: new Date() },
+    });
+  } else {
+    await prisma.user.create({
+      data: {
         name: "ADHYANTHA Admin",
         email: ADMIN_EMAIL,
-        passwordHash: adminPasswordHash,
+        passwordHash: await hashInitialAdminPassword(),
         role: "ADMIN",
+        emailVerified: new Date(),
       },
     });
   }

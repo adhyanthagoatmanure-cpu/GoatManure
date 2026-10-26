@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Search, ShoppingBag, User, Menu, ChevronDown, Package, Heart, MapPin, LogOut, LayoutDashboard } from "lucide-react";
@@ -120,8 +121,18 @@ export function Header() {
                   aria-expanded={accountOpen}
                   className="flex h-10 items-center gap-1.5 rounded-full px-2.5 text-[var(--color-ink)] transition-colors hover:bg-white/80"
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-canopy)] text-xs font-semibold text-white">
-                    {session.user?.name?.[0]?.toUpperCase() ?? "U"}
+                  <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--color-canopy)] text-xs font-semibold text-white">
+                    {session.user?.image ? (
+                      <Image
+                        src={session.user.image}
+                        alt=""
+                        fill
+                        sizes="28px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      session.user?.name?.[0]?.toUpperCase() ?? "U"
+                    )}
                   </span>
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", accountOpen && "rotate-180")} />
                 </button>
@@ -131,12 +142,16 @@ export function Header() {
                       <p className="truncate text-sm font-semibold">{session.user?.name}</p>
                       <p className="truncate text-xs text-[var(--color-stone)]">{session.user?.email}</p>
                     </div>
-                    <AccountLink href="/account" icon={User} label="My Account" />
-                    <AccountLink href="/account/orders" icon={Package} label="My Orders" />
-                    <AccountLink href="/account/wishlist" icon={Heart} label="Wishlist" />
-                    <AccountLink href="/account/addresses" icon={MapPin} label="Addresses" />
                     {session.user?.role === "ADMIN" && (
                       <AccountLink href="/admin" icon={LayoutDashboard} label="Go to Admin Panel" />
+                    )}
+                    {session.user?.role !== "ADMIN" && (
+                      <>
+                        <AccountLink href="/account" icon={User} label="My Account" />
+                        <AccountLink href="/account/orders" icon={Package} label="My Orders" />
+                        <AccountLink href="/account/wishlist" icon={Heart} label="Wishlist" />
+                        <AccountLink href="/account/addresses" icon={MapPin} label="Addresses" />
+                      </>
                     )}
                     <button
                       onClick={() => {

@@ -45,12 +45,14 @@ function LoginForm() {
 
   useEffect(() => {
     if (status === "authenticated" && !isSubmitting) {
-      const destination = session?.user.needsProfileCompletion
-        ? `/complete-profile?callbackUrl=${encodeURIComponent(callbackUrl)}`
-        : callbackUrl;
+      const destination = session?.user.role === "ADMIN"
+        ? "/admin"
+        : session?.user.needsProfileCompletion
+          ? `/complete-profile?callbackUrl=${encodeURIComponent(callbackUrl)}`
+          : callbackUrl;
       router.replace(destination);
     }
-  }, [callbackUrl, isSubmitting, router, session?.user.needsProfileCompletion, status]);
+  }, [callbackUrl, isSubmitting, router, session?.user.needsProfileCompletion, session?.user.role, status]);
 
   if (status === "authenticated") return null;
 
@@ -63,8 +65,9 @@ function LoginForm() {
         return;
       }
 
-      await update();
-      window.location.assign(res.url ?? callbackUrl);
+      const updatedSession = await update();
+      const destination = updatedSession?.user.role === "ADMIN" ? "/admin" : res.url ?? callbackUrl;
+      window.location.assign(destination);
     } catch {
       setServerError(NEXTAUTH_ERROR_MESSAGES.Default);
     }

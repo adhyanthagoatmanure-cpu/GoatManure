@@ -31,7 +31,6 @@ const LINKS = [
   { href: "/admin/blog", label: "Blog", icon: Newspaper },
   { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
   { href: "/admin/contact", label: "Contact", icon: MessageSquareQuote },
-  { href: "/admin/login", label: "Login/Signup", icon: Users },
 ];
 
 /*

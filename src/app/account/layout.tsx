@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { isAdminIdentity } from "@/lib/admin-identity";
 import { AccountSidebar } from "@/components/account/account-sidebar";
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/account");
+  if (isAdminIdentity(session.user.email, session.user.role)) redirect("/admin");
 
   return (
     <div className="container-page py-10 sm:py-14">

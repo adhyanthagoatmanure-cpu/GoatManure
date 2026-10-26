@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, Eye, FileDown,
-  FileSpreadsheet, FileText, MapPin, MessageSquare, Package, Phone, Search, ShoppingCart, Truck, X,
+  FileSpreadsheet, FileText, MapPin, MessageSquare, Package, Phone, Printer, Search, ShoppingCart, Truck, X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ export default function AdminOrdersPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [selected, setSelected] = useState<Detail | null>(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -177,7 +179,30 @@ export default function AdminOrdersPage() {
   if (orders === null) return <PageSpinner />;
   const pageCount = Math.max(1, Math.ceil(orders.length / pageSize));
   const visibleOrders = orders.slice((page - 1) * pageSize, page * pageSize);
+  const allVisibleOrdersSelected =
+    visibleOrders.length > 0 && visibleOrders.every((order) => selectedOrderIds.includes(order.id));
   const selectedStatusLabel = selected ? ORDER_STATUS_LABELS[selected.orderStatus] : "";
+
+  function toggleVisibleOrders(checked: boolean) {
+    const visibleIds = new Set(visibleOrders.map((order) => order.id));
+    setSelectedOrderIds((current) => {
+      const remaining = current.filter((id) => !visibleIds.has(id));
+      return checked ? [...remaining, ...visibleIds] : remaining;
+    });
+  }
+
+  function toggleOrder(orderId: string, checked: boolean) {
+    setSelectedOrderIds((current) =>
+      checked
+        ? current.includes(orderId) ? current : [...current, orderId]
+        : current.filter((id) => id !== orderId)
+    );
+  }
+
+  function printSelectedOrders() {
+    const params = new URLSearchParams({ ids: selectedOrderIds.join(",") });
+    window.location.assign(`/admin/orders/print?${params.toString()}`);
+  }
 
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
@@ -243,6 +268,10 @@ export default function AdminOrdersPage() {
         <Button onClick={() => setShowExportOptions(true)} disabled={!orders.length}>
           <FileDown className="h-4 w-4" aria-hidden />Export
         </Button>
+        <Button onClick={printSelectedOrders} disabled={selectedOrderIds.length === 0}>
+          <Printer className="h-4 w-4" aria-hidden />
+          Print selected ({selectedOrderIds.length})
+        </Button>
       </div>
 
       {showExportOptions && (
@@ -278,6 +307,15 @@ export default function AdminOrdersPage() {
               <caption className="sr-only">Customer orders</caption>
               <thead className={TABLE_HEAD}>
                 <tr>
+                  <th scope="col" className={TH}>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all orders on this page"
+                      checked={allVisibleOrdersSelected}
+                      onChange={(event) => toggleVisibleOrders(event.target.checked)}
+                      className="h-4 w-4 accent-canopy"
+                    />
+                  </th>
                   {["#", "Order ID", "Customer", "Date & Time", "Amount", "Status", "Payment", "Action"].map((head) => (
                     <th key={head} scope="col" className={TH}>{head}</th>
                   ))}
@@ -286,11 +324,20 @@ export default function AdminOrdersPage() {
               <tbody className={TBODY}>
                 {visibleOrders.map((order, index) => (
                   <tr key={order.id} className={TR}>
+                    <td className={TD}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select order ${formatOrderNumber(order.orderNumber)}`}
+                        checked={selectedOrderIds.includes(order.id)}
+                        onChange={(event) => toggleOrder(order.id, event.target.checked)}
+                        className="h-4 w-4 accent-canopy"
+                      />
+                    </td>
                     <td className={cn(TD, "text-xs text-stone")}>{(page - 1) * pageSize + index + 1}</td>
                     <td className={TD}>
-                      <button type="button" onClick={() => void openDetails(order.id)} className="font-semibold text-canopy underline-offset-4 hover:underline">
+                      <Link href={`/admin/orders/${order.id}`} className="font-semibold text-canopy underline-offset-4 hover:underline">
                         {formatOrderNumber(order.orderNumber)}
-                      </button>
+                      </Link>
                       <p className="mt-1 text-xs text-stone">{order.items.length} item{order.items.length === 1 ? "" : "s"}</p>
                     </td>
                     <td className={TD}>

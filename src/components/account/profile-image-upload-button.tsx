@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useToast } from "@/components/providers/toast-provider";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -11,6 +12,7 @@ export function ProfileImageUploadButton() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
+  const { update } = useSession();
   const { show } = useToast();
 
   async function upload(file: File) {
@@ -29,6 +31,7 @@ export function ProfileImageUploadButton() {
         show(data?.message ?? data?.error ?? "Image upload failed.");
         return;
       }
+      await update();
       router.refresh();
       show("Profile photo uploaded.");
     } catch {

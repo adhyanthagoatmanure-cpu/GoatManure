@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { Package, MapPin, CreditCard, Truck, User as UserIcon, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -206,7 +207,13 @@ export default function AdminOrderDetailPage() {
         <div className="print-label-content">
           <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em]">ADHYANTHA</p>
+              <Image
+                src="/images/brand/logo-lockup.png"
+                alt="ADHYANTHA Goat Manure"
+                width={2200}
+                height={700}
+                className="print-label-logo"
+              />
               <p className="mt-1 text-2xl font-bold">SHIP TO</p>
             </div>
             <p className="text-right text-sm font-semibold">Order {order.orderNumber}</p>

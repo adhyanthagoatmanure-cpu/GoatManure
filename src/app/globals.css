@@ -434,7 +434,18 @@
   display: none;
 }
 
+.print-label-logo {
+  display: block;
+  width: 38mm;
+  height: auto;
+}
+
 @media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
   body * {
     visibility: hidden !important;
   }
@@ -442,6 +453,81 @@
   .print-label,
   .print-label * {
     visibility: visible !important;
+  }
+
+  .a4-bills-page,
+  .a4-bills-page * {
+    visibility: visible !important;
+  }
+
+  .a4-bills-page {
+    position: absolute;
+    inset: 0;
+    width: 210mm;
+    background: white;
+    color: black;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+
+  .a4-bill-sheet {
+    box-sizing: border-box;
+    display: grid;
+    width: 210mm;
+    height: 297mm;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 5mm;
+    padding: 8mm;
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .a4-bill-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .a4-order-bill {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px dashed #777;
+    padding: 4mm;
+    font-size: 8pt;
+    line-height: 1.25;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .a4-order-bill .print-label-logo {
+    width: 32mm;
+  }
+
+  .a4-order-bill .mt-3 {
+    margin-top: 2mm;
+  }
+
+  .a4-order-bill .mt-4 {
+    margin-top: 3mm;
+  }
+
+  .a4-order-bill .mt-2 {
+    margin-top: 1.5mm;
+  }
+
+  .a4-order-bill .gap-4 {
+    gap: 3mm;
+  }
+
+  .a4-order-bill .py-2 {
+    padding-block: 2mm;
+  }
+
+  .a4-order-bill .py-1 {
+    padding-block: 1mm;
   }
 
   .print-label {

@@ -128,15 +128,19 @@ export function MobileNav({
           {session ? (
             <>
               <p className="px-3 pb-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--color-stone)]">
-                My Account
+                {session.user?.role === "ADMIN" ? "Admin Panel" : "My Account"}
               </p>
               <nav aria-label="Account" className="flex flex-col gap-1">
-                <MobileAccountLink href="/account" icon={User} label="My Account" />
-                <MobileAccountLink href="/account/orders" icon={Package} label="My Orders" />
-                <MobileAccountLink href="/account/wishlist" icon={Heart} label="Wishlist" />
-                <MobileAccountLink href="/account/addresses" icon={MapPin} label="Addresses" />
                 {session.user?.role === "ADMIN" && (
                   <MobileAccountLink href="/admin" icon={LayoutDashboard} label="Go to Admin Panel" />
+                )}
+                {session.user?.role !== "ADMIN" && (
+                  <>
+                    <MobileAccountLink href="/account" icon={User} label="My Account" />
+                    <MobileAccountLink href="/account/orders" icon={Package} label="My Orders" />
+                    <MobileAccountLink href="/account/wishlist" icon={Heart} label="Wishlist" />
+                    <MobileAccountLink href="/account/addresses" icon={MapPin} label="Addresses" />
+                  </>
                 )}
                 <button
                   onClick={() => {

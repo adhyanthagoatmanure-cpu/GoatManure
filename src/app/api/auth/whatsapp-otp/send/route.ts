@@ -11,10 +11,17 @@ import {
   isWhatsAppOtpConfigured,
   isWhatsAppOtpRealDeliveryEnabled,
 } from "@/server/whatsapp/otp-delivery";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { normalizeIndianMobileNumber } from "@/lib/validations/phone";
 
 const sendRequestSchema = z.discriminatedUnion("purpose", [
   z.object({
     purpose: z.literal("LOGIN"),
+    phone: indianMobileNumberSchema,
+  }).strict(),
+  z.object({
+    purpose: z.literal("PROFILE"),
     phone: indianMobileNumberSchema,
   }).strict(),
   z.object({
@@ -46,6 +53,28 @@ export async function POST(req: Request) {
     );
   }
 
+  let profileUserId: string | undefined;
+  if (parsed.data.purpose === "PROFILE") {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Please sign in before adding a mobile number." }, { status: 401 });
+    }
+    profileUserId = session.user.id;
+    const verifiedPhoneOwner = await prisma.user.findFirst({
+      where: {
+        NOT: { id: profileUserId },
+        OR: [
+          { phone: normalizeIndianMobileNumber(parsed.data.phone) },
+          { verifiedPhone: `+91${normalizeIndianMobileNumber(parsed.data.phone)}` },
+        ],
+      },
+      select: { id: true },
+    });
+    if (verifiedPhoneOwner) {
+      return NextResponse.json({ error: "This mobile number is already linked to another account." }, { status: 409 });
+    }
+  }
+
   try {
     const registration = parsed.data.purpose === "REGISTER"
       ? {
@@ -62,6 +91,7 @@ export async function POST(req: Request) {
       phone,
       purpose: parsed.data.purpose,
       ip: getWhatsAppOtpRequestIp(req.headers),
+      userId: profileUserId,
       registration,
       resend: parsed.data.purpose === "REGISTER" ? parsed.data.resend : undefined,
     });

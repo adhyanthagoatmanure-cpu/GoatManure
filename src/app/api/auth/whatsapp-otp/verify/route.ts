@@ -8,10 +8,11 @@ import {
   verifyWhatsAppOtpChallenge,
   WhatsAppOtpError,
 } from "@/server/auth/whatsapp-otp";
+import { auth } from "@/lib/auth";
 
 const verifyRequestSchema = z.object({
   challengeId: z.string().uuid(),
-  purpose: z.enum(["REGISTER", "LOGIN"]),
+  purpose: z.enum(["REGISTER", "LOGIN", "PROFILE"]),
   code: z.string().regex(/^\d{6}$/, "Enter the 6-digit verification code."),
 }).strict();
 
@@ -31,9 +32,14 @@ export async function POST(req: Request) {
   }
 
   try {
+    const session = parsed.data.purpose === "PROFILE" ? await auth() : null;
+    if (parsed.data.purpose === "PROFILE" && !session?.user?.id) {
+      return NextResponse.json({ error: "Please sign in before verifying a mobile number." }, { status: 401 });
+    }
     const result = await verifyWhatsAppOtpChallenge({
       ...parsed.data,
       ip: getWhatsAppOtpRequestIp(req.headers),
+      userId: session?.user?.id,
     });
 
     if (parsed.data.purpose === "REGISTER" && result.registrationUserId) {
@@ -55,6 +61,10 @@ export async function POST(req: Request) {
         success: true,
         authenticationTicket: result.authenticationTicket,
       });
+    }
+
+    if (parsed.data.purpose === "PROFILE" && result.profileVerified) {
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ error: "The code is invalid or expired. Request a new code." }, { status: 400 });

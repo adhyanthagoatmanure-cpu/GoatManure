@@ -268,6 +268,7 @@ export async function sendWhatsAppOtpChallenge(input: {
   phone: string;
   purpose: WhatsAppOtpPurpose;
   ip: string;
+  userId?: string;
   registration?: WhatsAppOtpRegistrationInput;
   resend?: boolean;
 }): Promise<{
@@ -319,6 +320,12 @@ export async function sendWhatsAppOtpChallenge(input: {
         notRegistered: true,
       };
     }
+  } else if (input.purpose === "PROFILE") {
+    const user = input.userId
+      ? await prisma.user.findUnique({ where: { id: input.userId }, select: { id: true, status: true } })
+      : null;
+    eligible = Boolean(user && user.status === "ACTIVE");
+    userId = user?.id;
   } else {
     eligible = Boolean(input.registration) &&
       await isRegistrationAvailable(input.registration?.email ?? "", input.phone);
@@ -426,7 +433,8 @@ export async function verifyWhatsAppOtpChallenge(input: {
   purpose: WhatsAppOtpPurpose;
   code: string;
   ip: string;
-}): Promise<{ registrationUserId?: string; authenticationTicket?: string }> {
+  userId?: string;
+}): Promise<{ registrationUserId?: string; authenticationTicket?: string; profileVerified?: boolean }> {
   const now = new Date();
   await enforceVerifyLimit(input.ip, now);
   await cleanExpiredOtpRecords(now);
@@ -437,6 +445,37 @@ export async function verifyWhatsAppOtpChallenge(input: {
     now
   );
   const secret = getOtpSecret();
+
+  if (input.purpose === "PROFILE") {
+    if (!input.userId || challenge.userId !== input.userId) throw new WhatsAppOtpError("invalid");
+    try {
+      const claimed = await prisma.whatsAppOtpChallenge.updateMany({
+        where: {
+          id: challenge.id,
+          purpose: "PROFILE",
+          userId: input.userId,
+          codeHash: challenge.codeHash,
+          verifiedAt: null,
+          consumedAt: null,
+          expiresAt: { gt: now },
+          attempts: { lt: WHATSAPP_OTP_MAX_ATTEMPTS },
+        },
+        data: { verifiedAt: now, consumedAt: now, codeHash: null },
+      });
+      if (claimed.count !== 1) throw new WhatsAppOtpError("invalid");
+      await prisma.user.update({
+        where: { id: input.userId },
+        data: { phone: challenge.phone.slice(3), verifiedPhone: challenge.phone, phoneVerifiedAt: now },
+      });
+      return { profileVerified: true };
+    } catch (error) {
+      if (error instanceof WhatsAppOtpError) throw error;
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new WhatsAppOtpError("invalid");
+      }
+      throw error;
+    }
+  }
 
   if (input.purpose === "REGISTER") {
     try {

@@ -8,11 +8,12 @@ export function useSignOut(redirectTo: string) {
 
   return async function signOutAndNavigate() {
     try {
-      await signOut({ redirect: false, redirectTo });
-      window.location.assign(new URL(redirectTo, window.location.origin).href);
-    } catch {
-      console.error("Unable to sign out.");
-      show("Unable to sign out. Please try again.", "error");
+      await signOut({ redirect: false });
+    } catch (error) {
+      console.error("Unable to finish the sign-out request cleanly.", error);
+      show("Refreshing the sign-out page.");
+    } finally {
+      window.location.replace(new URL(redirectTo, window.location.origin).href);
     }
   };
 }

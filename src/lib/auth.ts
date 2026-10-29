@@ -177,9 +177,7 @@ const authConfig: NextAuthConfig = {
         token.role = role;
         token.phone = dbUser.phone;
         token.image = dbUser.image;
-        token.needsProfileCompletion = account?.provider === "google"
-          ? !dbUser.phone
-          : token.needsProfileCompletion === true && !dbUser.phone;
+        token.needsProfileCompletion = !dbUser.phone;
       } else {
         token.role = "CUSTOMER";
       }

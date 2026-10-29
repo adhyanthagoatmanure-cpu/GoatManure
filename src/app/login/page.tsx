@@ -66,7 +66,11 @@ function LoginForm() {
       }
 
       const updatedSession = await update();
-      const destination = updatedSession?.user.role === "ADMIN" ? "/admin" : res.url ?? callbackUrl;
+      const destination = updatedSession?.user.role === "ADMIN"
+        ? "/admin"
+        : updatedSession?.user.needsProfileCompletion
+          ? `/complete-profile?callbackUrl=${encodeURIComponent(callbackUrl)}`
+          : res.url ?? callbackUrl;
       window.location.assign(destination);
     } catch {
       setServerError(NEXTAUTH_ERROR_MESSAGES.Default);

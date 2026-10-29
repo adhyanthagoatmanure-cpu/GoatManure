@@ -599,4 +599,5 @@ enum payment_intents_status {
 enum WhatsAppOtpPurpose {
   REGISTER
   LOGIN
+  PROFILE
 }

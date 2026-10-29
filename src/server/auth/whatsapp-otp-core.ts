@@ -6,7 +6,7 @@ export const WHATSAPP_OTP_RESEND_MS = 60 * 1000;
 export const WHATSAPP_OTP_TICKET_TTL_MS = 60 * 1000;
 export const WHATSAPP_OTP_MAX_ATTEMPTS = 5;
 
-export type WhatsAppOtpPurpose = "REGISTER" | "LOGIN";
+export type WhatsAppOtpPurpose = "REGISTER" | "LOGIN" | "PROFILE";
 
 export interface WhatsAppOtpLoginUser {
   id: string;

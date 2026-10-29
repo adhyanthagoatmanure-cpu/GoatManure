@@ -2,11 +2,20 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isAdminIdentity } from "@/lib/admin-identity";
 import { AccountSidebar } from "@/components/account/account-sidebar";
+import { prisma } from "@/lib/prisma";
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/account");
   if (isAdminIdentity(session.user.email, session.user.role)) redirect("/admin");
+
+  const profileUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { phone: true },
+  });
+  if (!profileUser?.phone?.trim()) {
+    redirect("/complete-profile?callbackUrl=/account");
+  }
 
   return (
     <div className="container-page py-10 sm:py-14">

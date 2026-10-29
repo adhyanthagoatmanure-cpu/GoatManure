@@ -140,6 +140,12 @@ const authConfig: NextAuthConfig = {
       });
 
       if (existingUser) {
+        if (!existingUser.image && typeof user.image === "string" && user.image) {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { image: user.image },
+          });
+        }
         const alreadyLinked = existingUser.accounts.some((a) => a.provider === account.provider);
         if (!alreadyLinked) {
           await prisma.account.create({
@@ -172,11 +178,19 @@ const authConfig: NextAuthConfig = {
           ? await prisma.user.findUnique({ where: { email: token.email as string } })
           : null;
       if (dbUser) {
+        const oauthImage = typeof user?.image === "string" && user.image ? user.image : undefined;
+        if (!dbUser.image && oauthImage) {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { image: oauthImage },
+          });
+        }
+        const profileImage = dbUser.image ?? oauthImage ?? null;
         const role = roleForIdentity(dbUser.email, dbUser.emailVerified, dbUser.role);
         token.id = dbUser.id;
         token.role = role;
         token.phone = dbUser.phone;
-        token.image = dbUser.image;
+        token.image = profileImage;
         token.needsProfileCompletion = !dbUser.phone;
       } else {
         token.role = "CUSTOMER";

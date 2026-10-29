@@ -369,7 +369,9 @@ export async function sendWhatsAppOtpChallenge(input: {
       error instanceof WhatsAppOtpDeliveryError ? error.httpStatus ?? "unavailable" : "unknown";
     const providerCode =
       error instanceof WhatsAppOtpDeliveryError ? error.providerCode ?? "unavailable" : "unknown";
-    console.error(`[whatsapp-otp] message delivery failed status=${providerStatus} code=${providerCode}`);
+    const providerMessage = error instanceof WhatsAppOtpDeliveryError ? error.providerMessage ?? "unavailable" : "unknown";
+    const providerSubcode = error instanceof WhatsAppOtpDeliveryError ? error.providerSubcode ?? "unavailable" : "unknown";
+    console.error(`[whatsapp-otp] message delivery failed status=${providerStatus} code=${providerCode} subcode=${providerSubcode} message=${providerMessage}`);
     return {
       challengeId: candidateId,
       sent: false,

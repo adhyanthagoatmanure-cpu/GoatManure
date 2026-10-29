@@ -4,7 +4,9 @@ export class WhatsAppOtpDeliveryError extends Error {
   constructor(
     readonly category: "not-configured" | "invalid-configuration" | "provider-failure",
     readonly httpStatus?: number,
-    readonly providerCode?: number
+    readonly providerCode?: number,
+    readonly providerMessage?: string,
+    readonly providerSubcode?: number
   ) {
     super("WhatsApp OTP delivery is unavailable");
     this.name = "WhatsAppOtpDeliveryError";
@@ -75,7 +77,7 @@ export async function sendWhatsAppOtp(
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+                    Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -108,15 +110,25 @@ export async function sendWhatsAppOtp(
 
   if (!response.ok) {
     let providerCode: number | undefined;
+    let providerMessage: string | undefined;
+    let providerSubcode: number | undefined;
     try {
       const payload = await response.clone().json() as {
-        error?: { code?: unknown };
+        error?: {
+          code?: unknown;
+          message?: unknown;
+          error_subcode?: unknown;
+          error_data?: { details?: unknown };
+        };
       };
       if (typeof payload.error?.code === "number") providerCode = payload.error.code;
+      if (typeof payload.error?.error_subcode === "number") providerSubcode = payload.error.error_subcode;
+      if (typeof payload.error?.error_data?.details === "string") providerMessage = payload.error.error_data.details;
+      else if (typeof payload.error?.message === "string") providerMessage = payload.error.message;
     } catch {
       // A non-JSON provider response still has a useful HTTP status.
     }
-    throw new WhatsAppOtpDeliveryError("provider-failure", response.status, providerCode);
+    throw new WhatsAppOtpDeliveryError("provider-failure", response.status, providerCode, providerMessage, providerSubcode);
   }
 
   return "sent";

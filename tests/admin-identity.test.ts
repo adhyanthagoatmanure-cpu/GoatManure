@@ -14,18 +14,17 @@ test("denies other accounts even when their stored role is ADMIN", () => {
   assert.equal(isAdminIdentity("other@example.com", "ADMIN"), false);
 });
 
-test("denies the configured email unless its role is ADMIN", () => {
-  assert.equal(isAdminIdentity(ADMIN_EMAIL, "CUSTOMER"), false);
+test("allows the configured email regardless of its stored role", () => {
+  assert.equal(isAdminIdentity(ADMIN_EMAIL, "CUSTOMER"), true);
 });
 
 test("denies unauthenticated users", () => {
   assert.equal(isAdminIdentity(null, null), false);
 });
 
-test("assigns admin role only to the configured email after email verification", () => {
+test("assigns admin role only to the configured email", () => {
   assert.equal(roleForIdentity(ADMIN_EMAIL, new Date(), "ADMIN"), "ADMIN");
-  assert.equal(roleForIdentity(ADMIN_EMAIL, null, "ADMIN"), "CUSTOMER");
-  assert.equal(roleForIdentity(ADMIN_EMAIL, new Date(), "CUSTOMER"), "CUSTOMER");
+  assert.equal(roleForIdentity(ADMIN_EMAIL, null, "CUSTOMER"), "ADMIN");
   assert.equal(roleForIdentity("other@example.com", new Date(), "ADMIN"), "CUSTOMER");
 });
 

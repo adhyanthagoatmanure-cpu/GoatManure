@@ -6,7 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import baseAuthConfig from "@/lib/auth.config";
-import { roleForIdentity } from "@/lib/admin-identity";
+import { ADMIN_PHONE, isConfiguredAdminEmail, roleForIdentity } from "@/lib/admin-identity";
 import { consumeWhatsAppOtpLoginTicket } from "@/server/auth/whatsapp-otp";
 
 const hasGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -54,7 +54,7 @@ const authConfig: NextAuthConfig = {
         const ticket = typeof credentials?.ticket === "string" ? credentials.ticket : "";
         if (!ticket) return null;
         const user = await consumeWhatsAppOtpLoginTicket(ticket);
-        if (!user || user.role !== "CUSTOMER" || user.status !== "ACTIVE") return null;
+        if (!user || user.status !== "ACTIVE") return null;
         return {
           id: user.id,
           name: user.name,
@@ -185,13 +185,24 @@ const authConfig: NextAuthConfig = {
             data: { image: oauthImage },
           });
         }
-        const profileImage = dbUser.image ?? oauthImage ?? null;
         const role = roleForIdentity(dbUser.email, dbUser.emailVerified, dbUser.role);
+        const adminPhone = isConfiguredAdminEmail(dbUser.email) ? ADMIN_PHONE : null;
+        const phone = adminPhone ?? dbUser.phone;
+        if ((adminPhone && dbUser.phone !== adminPhone) || (role === "ADMIN" && dbUser.role !== "ADMIN")) {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: {
+              ...(adminPhone ? { phone: adminPhone } : {}),
+              ...(role === "ADMIN" ? { role: "ADMIN" } : {}),
+            },
+          });
+        }
+        const profileImage = dbUser.image ?? oauthImage ?? null;
         token.id = dbUser.id;
         token.role = role;
-        token.phone = dbUser.phone;
+        token.phone = phone;
         token.image = profileImage;
-        token.needsProfileCompletion = !dbUser.phone;
+        token.needsProfileCompletion = !phone;
       } else {
         token.role = "CUSTOMER";
       }

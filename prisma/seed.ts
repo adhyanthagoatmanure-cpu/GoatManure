@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { ADMIN_EMAIL } from "../src/lib/admin-identity";
+import { ADMIN_EMAIL, ADMIN_PHONE } from "../src/lib/admin-identity";
 
 const prisma = new PrismaClient();
 const isProduction = process.env.NODE_ENV === "production";
@@ -162,7 +162,7 @@ async function main() {
   if (existingAdmin) {
     await prisma.user.update({
       where: { email: ADMIN_EMAIL },
-      data: { role: "ADMIN", emailVerified: new Date() },
+      data: { role: "ADMIN", emailVerified: new Date(), phone: ADMIN_PHONE },
     });
   } else {
     await prisma.user.create({
@@ -172,6 +172,7 @@ async function main() {
         passwordHash: await hashInitialAdminPassword(),
         role: "ADMIN",
         emailVerified: new Date(),
+        phone: ADMIN_PHONE,
       },
     });
   }

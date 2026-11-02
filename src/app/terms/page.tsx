@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions",
+  title: "Terms of Service",
+  description: "Terms governing the use of the ADHYANTHA website and purchases.",
 };
 
 export default function TermsPage() {

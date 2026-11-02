@@ -25,9 +25,9 @@ const COLUMNS = [
   {
     title: "Help",
     links: [
-      { href: "/contact", label: "Shipping Info" },
-      { href: "/contact", label: "Returns & Refunds" },
-      { href: "/contact", label: "FAQs" },
+      { href: "/shipping-info", label: "Shipping Info" },
+      { href: "/returns-refunds", label: "Returns & Refunds" },
+      { href: "/faq", label: "FAQs" },
     ],
   },
 ];
@@ -101,7 +101,7 @@ export function Footer() {
           <p>© {new Date().getFullYear()} {SITE.name}. All rights reserved.</p>
           <div className="flex gap-5">
             <Link href="/privacy-policy" className="transition-colors hover:text-white">Privacy Policy</Link>
-            <Link href="/contact" className="transition-colors hover:text-white">Terms of Service</Link>
+            <Link href="/terms" className="transition-colors hover:text-white">Terms of Service</Link>
           </div>
         </div>
       </div>

@@ -455,6 +455,16 @@
     margin: 0;
   }
 
+  html:has(.print-label),
+  body:has(.print-label) {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 0 !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
   body * {
     visibility: hidden !important;
   }
@@ -568,16 +578,28 @@
 
   .print-label {
     display: block;
-    position: absolute;
-    inset: 0;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    height: 297mm;
+    box-sizing: border-box;
     padding: 0.35in;
     background: white;
     color: black;
+    overflow: hidden;
+    break-after: avoid;
+    break-before: avoid;
+    break-inside: avoid;
+    page-break-after: avoid;
+    page-break-before: avoid;
+    page-break-inside: avoid;
   }
 
   .print-label-content {
     width: 4in;
     min-height: 5in;
+    box-sizing: border-box;
     border: 2px solid black;
     padding: 0.25in;
   }

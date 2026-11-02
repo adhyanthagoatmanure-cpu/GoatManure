@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { PageSpinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/providers/toast-provider";
 import { cn, formatDateTime, formatINR } from "@/lib/utils";
+import { printAfterImagesLoaded } from "@/lib/print";
 import { AdminPageHeader, PANEL } from "@/components/admin/admin-ui";
 import {
   ORDER_STATUS_LABELS,
@@ -110,7 +111,7 @@ export default function AdminOrderDetailPage() {
         description={`Placed ${formatDateTime(order.createdAt)}`}
         actions={
           <>
-            <Button variant="outline" onClick={() => window.print()}>
+            <Button variant="outline" onClick={printAfterImagesLoaded}>
               <Printer className="h-4 w-4" aria-hidden /> Print Label
             </Button>
             <Badge tone={ORDER_STATUS_TONE[order.orderStatus]}>{ORDER_STATUS_LABELS[order.orderStatus]}</Badge>
@@ -210,10 +211,13 @@ export default function AdminOrderDetailPage() {
               <Image
                 src="/images/brand/logo-lockup.png"
                 alt="ADHYANTHA Goat Manure"
-                width={2200}
-                height={700}
+                width={2172}
+                height={724}
                 className="print-label-logo"
+                priority
+                unoptimized
               />
+              <p className="print-label-address">Kovai to Karur Main Road, K.Paramathi, Karur-639111</p>
               <p className="mt-1 text-2xl font-bold">SHIP TO</p>
             </div>
             <p className="text-right text-sm font-semibold">Order {order.orderNumber}</p>

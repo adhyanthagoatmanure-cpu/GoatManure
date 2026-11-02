@@ -63,10 +63,13 @@ export default async function PrintOrderBillsPage({
                         <Image
                           src="/images/brand/logo-lockup.png"
                           alt="ADHYANTHA Goat Manure"
-                          width={2200}
-                          height={700}
+                          width={2172}
+                          height={724}
                           className="print-label-logo"
+                          priority
+                          unoptimized
                         />
+                        <p className="print-label-address">Kovai to Karur Main Road, K.Paramathi, Karur-639111</p>
                         <h2 className="mt-1 text-lg font-bold">Order Bill</h2>
                       </div>
                       <div className="text-right text-xs">

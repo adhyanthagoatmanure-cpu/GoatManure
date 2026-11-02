@@ -438,6 +438,15 @@
   display: block;
   width: 38mm;
   height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.print-label-address {
+  max-width: 38mm;
+  margin-top: 1mm;
+  font-size: 7pt;
+  line-height: 1.2;
 }
 
 @media print {
@@ -455,6 +464,22 @@
     visibility: visible !important;
   }
 
+  .print-label-logo {
+    display: block !important;
+    width: 38mm;
+    height: auto !important;
+    max-width: 100%;
+    object-fit: contain;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-label-address {
+    max-width: 38mm;
+    font-size: 7pt;
+    line-height: 1.2;
+  }
+
   .a4-bills-page,
   .a4-bills-page * {
     visibility: visible !important;
@@ -468,6 +493,11 @@
     color: black;
   }
 
+  .a4-bill-sheets {
+    width: 210mm;
+    overflow: hidden;
+  }
+
   .print-hidden {
     display: none !important;
   }
@@ -476,12 +506,18 @@
     box-sizing: border-box;
     display: grid;
     width: 210mm;
-    height: 297mm;
+    height: 296mm;
+    max-height: 296mm;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: 5mm;
     padding: 8mm;
     overflow: hidden;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .a4-bill-sheet:not(:last-child) {
     break-after: page;
     page-break-after: always;
   }

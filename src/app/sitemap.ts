@@ -16,7 +16,7 @@ const STATIC_PATHS = [
 ] as const;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.adhyantha.com").replace(/\/$/, "");
+  const baseUrl = "https://goatmanure.com";
 
   const staticEntries = STATIC_PATHS.map((path) => ({
     url: `${baseUrl}${path}`,

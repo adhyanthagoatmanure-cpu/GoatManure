@@ -18,15 +18,13 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "overrides": {
-    "nodemailer": "$nodemailer"
-  },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
     "@fontsource/fraunces": "^5.3.0",
     "@fontsource/karla": "^5.3.0",
     "@fontsource/oswald": "^5.3.0",
     "@fontsource/roboto": "^5.3.0",
+    "@getbrevo/brevo": "^6.2.0",
     "@hookform/resolvers": "^5.9.1",
     "@next/env": "15.5.26",
     "@prisma/client": "6.12.0",
@@ -36,7 +34,6 @@
     "lucide-react": "^1.42.0",
     "next": "15.5.26",
     "next-auth": "^5.0.0-beta.32",
-    "nodemailer": "^10.0.3",
     "prisma": "6.12.0",
     "razorpay": "^2.9.8",
     "react": "19.2.8",
@@ -49,7 +46,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "9.39.5",

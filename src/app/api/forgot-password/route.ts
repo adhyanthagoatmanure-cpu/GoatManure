@@ -17,7 +17,18 @@ export async function POST(req: Request) {
     await prisma.passwordResetToken.create({
       data: { userId: user.id, token, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
     });
-    const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/reset-password?token=${token}`;
+    const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "";
+    const requestHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+    const requestProtocol = req.headers.get("x-forwarded-proto") === "https" ? "https" : "http";
+    const usesLocalRequestHost =
+      requestHost !== null &&
+      /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(requestHost.split(",")[0].trim());
+    const siteUrl = (
+      usesLocalRequestHost && requestHost
+        ? `${requestProtocol}://${requestHost.split(",")[0].trim()}`
+        : configuredUrl
+    ).replace(/\/$/, "");
+    const resetUrl = `${siteUrl}/reset-password?token=${encodeURIComponent(token)}`;
     const tpl = passwordResetEmail(resetUrl);
     await getEmailService().send({ to: user.email, ...tpl });
   }

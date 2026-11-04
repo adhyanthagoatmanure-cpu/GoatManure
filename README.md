@@ -41,8 +41,8 @@ integration that activates the moment you add real credentials to `.env`:
 | Google login | `GOOGLE_CLIENT_ID/SECRET` | Button is hidden |
 | Facebook login | `FACEBOOK_CLIENT_ID/SECRET` | Button is hidden |
 | Online payment (PayU India) | `PAYU_MERCHANT_KEY`, `PAYU_MERCHANT_SALT`, `PAYU_ENV` | Checkout reports that PayU is not configured; Cash on Delivery remains available |
-| Transactional email (order confirmation, password reset) | `SMTP_*` | Emails are logged to the server console instead of sent |
-| Admin order alerts (email + WhatsApp) | `ADMIN_NOTIFICATION_EMAIL`, `SMTP_*`, `WHATSAPP_*` | Order creation still succeeds; missing channels are logged to the server console |
+| Transactional email (order confirmation, password reset) | `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME` | Emails are logged to the server console instead of sent |
+| Admin order alerts (email + WhatsApp) | `ADMIN_NOTIFICATION_EMAIL`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`, `WHATSAPP_*` | Order creation still succeeds; missing channels are logged to the server console |
 | Database | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | App won't start — see setup below |
 
 See `.env.example` for the full list and where to get each credential.
@@ -382,7 +382,7 @@ src/
     services/              Business logic — pricing, coupons, orders (transactional)
     payment/                PayU Hosted Checkout + legacy Razorpay provider
     shipping/               ShippingProvider interface + manual implementation
-    email/                  EmailService interface + SMTP/console implementations
+    email/                  EmailService interface + Brevo/console implementations
   lib/                     prisma client, auth config, validation schemas, utils
   types/                   Shared TS types, status label/tone maps
 ```
@@ -410,7 +410,7 @@ superficially covering every line item. A few things worth knowing:
 
 ## Next steps for a real launch
 
-1. Add real credentials (§ above) for OAuth, PayU, and SMTP
+1. Add real credentials (§ above) for OAuth, PayU, and Brevo
 2. Replace placeholder product photography and contact details
 3. Configure GoDaddy's MySQL `DB_*` environment variables and back up the database
 4. Review the existing `_prisma_migrations` history, then apply pending MySQL migrations

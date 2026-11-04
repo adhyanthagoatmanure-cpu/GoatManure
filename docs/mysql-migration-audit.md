@@ -266,7 +266,7 @@ For GoDaddy hosting, expected deployment requirements include:
 - no reliance on Docker in production
 - Prisma generation and migration commands executed in the production deployment steps or at app startup
 - a production-appropriate `NEXTAUTH_SECRET`
-- secure credentials for SMTP, Razorpay, social login, and WhatsApp if enabled
+- secure credentials for Brevo, Razorpay, social login, and WhatsApp if enabled
 
 The app is already designed to fail gracefully when optional integrations are missing, which is good for production readiness, but the database migration still requires a real MySQL validation before deployment.
 
@@ -281,7 +281,7 @@ Required or likely required variables for the MySQL migration:
   - Google OAuth
   - Facebook OAuth
   - Razorpay
-  - SMTP
+  - Brevo Transactional Email
   - WhatsApp
   - Admin email notification
 

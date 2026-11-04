@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { BrevoClient } from "@getbrevo/brevo";
 
 export interface SendEmailInput {
   to: string;
@@ -18,40 +18,41 @@ export interface EmailService {
   send(input: SendEmailInput): Promise<SendEmailResult>;
 }
 
-const SMTP_HOST = process.env.SMTP_HOST ?? "";
-const SMTP_FROM = process.env.SMTP_FROM ?? "ADHYANTHA <no-reply@adhyantha.example>";
+const BREVO_API_KEY = process.env.BREVO_API_KEY ?? "";
+const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL ?? "";
+const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME ?? "ADHYANTHA";
 
 /** Logs to the server console instead of sending. Used automatically until
- * SMTP_HOST/SMTP_USER/SMTP_PASSWORD are set, so auth + order flows are fully
+ * BREVO_API_KEY and BREVO_SENDER_EMAIL are set, so auth + order flows are fully
  * testable before real email credentials exist. */
 class ConsoleEmailService implements EmailService {
   async send(_input: SendEmailInput): Promise<SendEmailResult> {
-    console.log("EMAIL NOT SENT - SMTP NOT CONFIGURED");
+    void _input;
+    console.log("EMAIL NOT SENT - BREVO NOT CONFIGURED");
     return { sent: false, accepted: [], rejected: [] };
   }
 }
 
-class SmtpEmailService implements EmailService {
-  private transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(process.env.SMTP_PORT ?? 587),
-    secure: Number(process.env.SMTP_PORT ?? 587) === 465,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
-  });
+class BrevoEmailService implements EmailService {
+  private client = new BrevoClient({ apiKey: BREVO_API_KEY });
 
   async send(input: SendEmailInput): Promise<SendEmailResult> {
-    const result = await this.transporter.sendMail({
-      from: SMTP_FROM,
-      to: input.to,
+    const result = await this.client.transactionalEmails.sendTransacEmail({
+      sender: {
+        email: BREVO_SENDER_EMAIL,
+        name: BREVO_SENDER_NAME,
+      },
+      to: [{ email: input.to }],
       subject: input.subject,
-      html: input.html,
-      text: input.text,
+      htmlContent: input.html,
+      textContent: input.text,
     });
+    console.log("BREVO EMAIL ACCEPTED", JSON.stringify({ messageId: result.messageId }));
     return {
       sent: true,
       messageId: result.messageId,
-      accepted: result.accepted.map(String),
-      rejected: result.rejected.map(String),
+      accepted: [input.to],
+      rejected: [],
     };
   }
 }
@@ -59,7 +60,12 @@ class SmtpEmailService implements EmailService {
 let instance: EmailService | null = null;
 
 export function getEmailService(): EmailService {
-  if (!instance) instance = SMTP_HOST ? new SmtpEmailService() : new ConsoleEmailService();
+  if (!instance) {
+    instance =
+      BREVO_API_KEY && BREVO_SENDER_EMAIL
+        ? new BrevoEmailService()
+        : new ConsoleEmailService();
+  }
   return instance;
 }
 

@@ -14,6 +14,18 @@ export const metadata: Metadata = {
   },
   description:
     "100% organic goat manure fertilizer for a healthier garden and soil. Nutrient-rich, natural plant nutrition, sustainably packed and delivered across India.",
+  keywords: [
+    "goat manure",
+    "organic goat manure",
+    "goat manure fertilizer",
+    "goat dung fertilizer",
+    "natural fertilizer India",
+    "organic manure",
+    "ADHYANTHA goat manure",
+  ],
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: "/images/brand/logo-mark-32.png",
     apple: "/images/brand/logo-mark-192.png",

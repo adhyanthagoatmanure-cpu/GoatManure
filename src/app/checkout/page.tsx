@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { PageSpinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, formatINR } from "@/lib/utils";
+import type { ShippingDestination } from "@/lib/config";
 import type { AddressInput } from "@/lib/validations/checkout";
 import { indianMobileNumberSchema } from "@/lib/validations/phone";
 import type { Address, PaymentMethod } from "@prisma/client";
@@ -28,13 +29,19 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { show } = useToast();
 
-  const [couponCode, setCouponCode] = useState<string | undefined>();
-  const { data: priced, isLoading: isPricing } = usePricedCart(couponCode);
-
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [newAddress, setNewAddress] = useState<AddressInput | null>(null);
+  const selectedAddress = addresses.find((address) => address.id === selectedAddressId);
+  const shippingDestination: ShippingDestination | undefined = showNewAddressForm
+    ? newAddress ?? undefined
+    : selectedAddress ?? newAddress ?? undefined;
+  const isInternationalDestination =
+    Boolean(shippingDestination) && shippingDestination!.country.trim().toLowerCase() !== "india";
+
+  const [couponCode, setCouponCode] = useState<string | undefined>();
+  const { data: priced, isLoading: isPricing } = usePricedCart(couponCode, shippingDestination);
 
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -46,6 +53,10 @@ export default function CheckoutPage() {
   const [placeError, setPlaceError] = useState<string | null>(null);
   const [payuCheckout, setPayuCheckout] = useState<PayUCheckout | null>(null);
   const payuFormRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (isInternationalDestination) setPaymentMethod("ONLINE");
+  }, [isInternationalDestination]);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -99,8 +110,12 @@ export default function CheckoutPage() {
     const errors: Record<string, string> = {};
     if (!guestName.trim() || guestName.trim().length < 2) errors.guestName = "Enter your full name";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) errors.guestEmail = "Enter a valid email address";
-    const phone = indianMobileNumberSchema.safeParse(guestPhone);
-    if (!phone.success) errors.guestPhone = phone.error.issues[0]?.message ?? "Enter a valid 10-digit Indian mobile number";
+    const phone = isInternationalDestination
+      ? /^[+0-9\s().-]{6,25}$/.test(guestPhone.trim())
+      : indianMobileNumberSchema.safeParse(guestPhone).success;
+    if (!phone) errors.guestPhone = isInternationalDestination
+      ? "Enter a valid international phone number"
+      : "Enter a valid 10-digit Indian mobile number";
     setGuestErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -256,7 +271,11 @@ export default function CheckoutPage() {
           </Section>
 
           <Section title="Payment Method" step={session ? 2 : 3}>
-            <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
+            <PaymentMethodSelector
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+              international={isInternationalDestination}
+            />
           </Section>
         </div>
 
@@ -267,6 +286,8 @@ export default function CheckoutPage() {
             onApplyCoupon={setCouponCode}
             onRemoveCoupon={() => setCouponCode(undefined)}
             isApplyingCoupon={isPricing}
+            shippingLabel={shippingDestination ? undefined : "Shipping (estimate)"}
+            shippingNote={shippingDestination ? undefined : "Delivery fee is confirmed once you select a destination."}
             footer={
               <div className="mt-5">
                 {placeError && (

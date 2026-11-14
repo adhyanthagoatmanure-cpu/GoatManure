@@ -6,6 +6,7 @@ import { z } from "zod";
 const bodySchema = z.object({
   items: z.array(z.object({ variantId: z.string().min(1), quantity: z.number().int().min(1) })),
   couponCode: z.string().optional(),
+  shippingDestination: z.object({ state: z.string(), country: z.string() }).optional(),
 });
 
 /**
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
   const priced = await priceCart(parsed.data.items, {
     couponCode: parsed.data.couponCode,
     userId: session?.user?.id ?? null,
+    shippingDestination: parsed.data.shippingDestination,
   });
 
   return NextResponse.json(priced);

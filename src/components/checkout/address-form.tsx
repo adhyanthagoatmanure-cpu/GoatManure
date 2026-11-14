@@ -4,17 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addressSchema, type AddressInput } from "@/lib/validations/checkout";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
-  "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
-  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
-  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
-  "Uttarakhand", "West Bengal", "Delhi", "Jammu and Kashmir", "Ladakh", "Puducherry",
-  "Chandigarh", "Andaman and Nicobar Islands",
-];
 
 export function AddressForm({
   defaultValues,
@@ -42,21 +32,16 @@ export function AddressForm({
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Full Name" autoComplete="name" {...register("fullName")} error={errors.fullName?.message} />
-        <Input label="Phone Number" type="tel" inputMode="numeric" autoComplete="tel" {...register("phone")} error={errors.phone?.message} />
+          <Input label="Phone Number" type="tel" autoComplete="tel" {...register("phone")} error={errors.phone?.message} />
       </div>
       <Input label="Address" placeholder="House no., street, area" autoComplete="address-line1" {...register("line1")} error={errors.line1?.message} />
       <Input label="Apartment, suite, etc. (optional)" autoComplete="address-line2" {...register("line2")} error={errors.line2?.message} />
       <div className="grid gap-4 sm:grid-cols-3">
         <Input label="City" autoComplete="address-level2" {...register("city")} error={errors.city?.message} />
-        <Select label="State" {...register("state")} error={errors.state?.message} defaultValue="">
-          <option value="" disabled>Select state</option>
-          {INDIAN_STATES.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </Select>
-        <Input label="PIN Code" inputMode="numeric" autoComplete="postal-code" {...register("pincode")} error={errors.pincode?.message} />
+        <Input label="State / Province / Region" autoComplete="address-level1" {...register("state")} error={errors.state?.message} />
+        <Input label="Postal / PIN Code" autoComplete="postal-code" {...register("pincode")} error={errors.pincode?.message} />
       </div>
-      <Input label="Country" {...register("country")} readOnly className="bg-parchment-deep text-stone" />
+      <Input label="Country" autoComplete="country-name" {...register("country")} error={errors.country?.message} />
 
       <div className="mt-2 flex flex-wrap gap-3">
         <Button type="submit" isLoading={isSubmitting}>{submitLabel}</Button>

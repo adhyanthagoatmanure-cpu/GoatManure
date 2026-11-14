@@ -1,17 +1,31 @@
-/**
- * Site-wide business constants that aren't tied to a specific product.
- * The client didn't specify a shipping policy, so this is a clearly-named,
- * easily-adjustable placeholder — change these two numbers and every price
- * shown across the storefront and admin updates with them.
- */
+/** Site-wide delivery fees and the Tamil Nadu free-delivery threshold. */
+export interface ShippingDestination {
+  state: string;
+  country: string;
+}
+
 export const SHIPPING_CONFIG = {
-  flatFee: 49,
+  tamilNaduFee: 30,
+  indiaFee: 70,
+  internationalFee: 400,
   freeAboveSubtotal: 499,
 };
 
-export function calculateShippingFee(subtotal: number): number {
+export function calculateShippingFee(
+  subtotal: number,
+  destination?: ShippingDestination,
+): number {
   if (subtotal <= 0) return 0;
-  return subtotal >= SHIPPING_CONFIG.freeAboveSubtotal ? 0 : SHIPPING_CONFIG.flatFee;
+
+  const country = destination?.country.trim().toLowerCase() ?? "india";
+  if (country !== "india") return SHIPPING_CONFIG.internationalFee;
+
+  const state = destination?.state.trim().toLowerCase();
+  if (state === "tamil nadu") {
+    return subtotal >= SHIPPING_CONFIG.freeAboveSubtotal ? 0 : SHIPPING_CONFIG.tamilNaduFee;
+  }
+
+  return SHIPPING_CONFIG.indiaFee;
 }
 
 export const SITE = {

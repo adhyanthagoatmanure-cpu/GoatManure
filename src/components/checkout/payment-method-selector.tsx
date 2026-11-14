@@ -7,9 +7,11 @@ import type { PaymentMethod } from "@prisma/client";
 export function PaymentMethodSelector({
   value,
   onChange,
+  international = false,
 }: {
   value: PaymentMethod;
   onChange: (method: PaymentMethod) => void;
+  international?: boolean;
 }) {
   const options: { value: PaymentMethod; icon: typeof Wallet; title: string; description: string }[] = [
     {
@@ -26,9 +28,16 @@ export function PaymentMethodSelector({
     },
   ];
 
+  const availableOptions = international ? options.filter((option) => option.value === "ONLINE") : options;
+
   return (
     <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Payment method">
-      {options.map((opt) => (
+      {international && (
+        <p className="sm:col-span-2 text-sm text-[var(--color-stone)]">
+          International orders require online payment.
+        </p>
+      )}
+      {availableOptions.map((opt) => (
         <button
           key={opt.value}
           type="button"

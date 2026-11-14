@@ -11,6 +11,8 @@ export function OrderSummary({
   onApplyCoupon,
   onRemoveCoupon,
   isApplyingCoupon,
+  shippingLabel,
+  shippingNote,
   footer,
 }: {
   priced: PriceCartResult;
@@ -18,6 +20,8 @@ export function OrderSummary({
   onApplyCoupon?: (code: string) => void;
   onRemoveCoupon?: () => void;
   isApplyingCoupon?: boolean;
+  shippingLabel?: string;
+  shippingNote?: string;
   footer?: React.ReactNode;
 }) {
   const [code, setCode] = useState(couponInput ?? "");
@@ -76,8 +80,9 @@ export function OrderSummary({
         {priced.discountAmount > 0 && (
           <Row label="Coupon Discount" value={`− ${formatINR(priced.discountAmount)}`} tone="success" />
         )}
-        <Row label="Shipping" value={priced.shippingFee === 0 ? "FREE" : formatINR(priced.shippingFee)} tone={priced.shippingFee === 0 ? "success" : undefined} />
+        <Row label={shippingLabel ?? "Shipping"} value={priced.shippingFee === 0 ? "FREE" : formatINR(priced.shippingFee)} tone={priced.shippingFee === 0 ? "success" : undefined} />
       </div>
+      {shippingNote && <p className="mt-2 text-xs text-[var(--color-stone)]">{shippingNote}</p>}
 
       <div className="mt-4 flex items-center justify-between border-t border-[var(--color-border)] pt-4">
         <span className="font-display text-base font-medium">Grand Total</span>

@@ -15,7 +15,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 export default function CartPage() {
   const { setQuantity, removeItem, isHydrated } = useCart();
   const [couponCode, setCouponCode] = useState<string | undefined>();
-  const { data: priced, isLoading, refresh } = usePricedCart(couponCode);
+  const { data: priced, isLoading } = usePricedCart(couponCode);
   const { show } = useToast();
   const router = useRouter();
 
@@ -94,6 +94,8 @@ export default function CartPage() {
             onApplyCoupon={handleApplyCoupon}
             onRemoveCoupon={() => setCouponCode(undefined)}
             isApplyingCoupon={isLoading}
+            shippingLabel="Shipping (estimate)"
+            shippingNote="Delivery fee is confirmed once you select a destination."
             footer={
               <div className="mt-5 flex flex-col gap-2.5">
                 <Button size="lg" className="w-full" onClick={handleCheckout} disabled={hasStockIssues}>

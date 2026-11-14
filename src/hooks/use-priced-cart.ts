@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useCart } from "@/components/providers/cart-provider";
+import type { ShippingDestination } from "@/lib/config";
 import type { PriceCartResult } from "@/server/services/pricing.service";
 
-export function usePricedCart(couponCode?: string) {
+export function usePricedCart(couponCode?: string, shippingDestination?: ShippingDestination) {
   const { lines, isHydrated, removeUnavailableItems } = useCart();
   const [data, setData] = useState<PriceCartResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +32,7 @@ export function usePricedCart(couponCode?: string) {
       const res = await fetch("/api/cart/price", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: lines, couponCode }),
+        body: JSON.stringify({ items: lines, couponCode, shippingDestination }),
       });
       if (res.ok) {
         const pricedCart = (await res.json()) as PriceCartResult;
@@ -42,7 +43,7 @@ export function usePricedCart(couponCode?: string) {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHydrated, JSON.stringify(lines), couponCode, removeUnavailableItems]);
+  }, [isHydrated, JSON.stringify(lines), couponCode, shippingDestination?.state, shippingDestination?.country, removeUnavailableItems]);
 
   useEffect(() => {
     refresh();

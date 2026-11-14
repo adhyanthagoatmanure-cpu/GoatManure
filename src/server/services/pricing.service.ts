@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { calculateShippingFee } from "@/lib/config";
+import { calculateShippingFee, type ShippingDestination } from "@/lib/config";
 import { normalizeProductImages } from "@/lib/utils";
 import type { Coupon, Prisma } from "@prisma/client";
 
@@ -53,7 +53,12 @@ export interface PriceCartResult {
  */
 export async function priceCart(
   rawItems: RawCartLine[],
-  opts: { couponCode?: string | null; userId?: string | null; db?: Db } = {}
+  opts: {
+    couponCode?: string | null;
+    userId?: string | null;
+    db?: Db;
+    shippingDestination?: ShippingDestination;
+  } = {}
 ): Promise<PriceCartResult> {
   const db = opts.db ?? prisma;
   const merged = new Map<string, number>();
@@ -122,7 +127,7 @@ export async function priceCart(
     }
   }
 
-  const shippingFee = calculateShippingFee(subtotal);
+  const shippingFee = calculateShippingFee(subtotal, opts.shippingDestination);
   const totalAmount = Math.max(subtotal - discountAmount + shippingFee, 0);
 
   return {

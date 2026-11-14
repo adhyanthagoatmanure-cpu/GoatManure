@@ -13,8 +13,8 @@ export function TrustStrip() {
   const items = [
     {
       icon: Truck,
-      title: `Free shipping above ${formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}`,
-      body: `Flat ${formatINR(SHIPPING_CONFIG.flatFee)} on smaller orders`,
+      title: `Free delivery in Tamil Nadu from ${formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}`,
+      body: `${formatINR(SHIPPING_CONFIG.tamilNaduFee)} in Tamil Nadu · ${formatINR(SHIPPING_CONFIG.indiaFee)} elsewhere in India · ${formatINR(SHIPPING_CONFIG.internationalFee)} internationally`,
     },
     {
       icon: Banknote,

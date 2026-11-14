@@ -29,8 +29,8 @@ export function CtaBanner() {
               Ready to give your garden the natural boost it deserves?
             </h2>
             <p className="mx-auto mt-3.5 max-w-md text-[15px] leading-relaxed text-white/90">
-              Free shipping on orders above {formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}. Cash on Delivery available
-              across India.
+              Free delivery in Tamil Nadu on orders of {formatINR(SHIPPING_CONFIG.freeAboveSubtotal)} or more.
+              Delivery is {formatINR(SHIPPING_CONFIG.indiaFee)} elsewhere in India and {formatINR(SHIPPING_CONFIG.internationalFee)} internationally.
             </p>
             <ButtonLink
               href="/products"

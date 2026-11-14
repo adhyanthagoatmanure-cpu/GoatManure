@@ -93,9 +93,9 @@ export function Hero() {
             </span>
             <p className="text-sm leading-tight">
               <span className="block font-bold text-[var(--color-ink)]">
-                Free shipping above {formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}
+                Free delivery in Tamil Nadu from {formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}
               </span>
-              <span className="text-xs text-[var(--color-stone)]">Delivered across India</span>
+              <span className="text-xs text-[var(--color-stone)]">Delivered in India and internationally</span>
             </p>
           </div>
           <div className="glass absolute -left-2 top-8 hidden items-center gap-3 rounded-2xl px-4 py-3 sm:flex lg:-left-6">

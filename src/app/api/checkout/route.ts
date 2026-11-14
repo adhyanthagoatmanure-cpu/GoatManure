@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { createPayUCheckoutForIntent, getPayUConfig } from "@/server/payment/payu-provider";
 import type { Prisma } from "@prisma/client";
 import { createAdminNotification } from "@/server/services/admin-notification.service";
+import { indianMobileNumberSchema } from "@/lib/validations/phone";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -29,31 +30,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please provide a shipping address" }, { status: 400 });
   }
 
+  const savedAddress = input.addressId && session?.user?.id
+    ? await prisma.address.findFirst({ where: { id: input.addressId, userId: session.user.id } })
+    : null;
+  if (input.addressId && !savedAddress) {
+    return NextResponse.json({ error: "Please provide a valid shipping address." }, { status: 409 });
+  }
+  const shippingAddress = savedAddress ?? input.newAddress;
+  const isInternational = Boolean(shippingAddress && shippingAddress.country.trim().toLowerCase() !== "india");
+
+  if (!session?.user && input.guestPhone) {
+    const validPhone = isInternational
+      ? /^[+0-9\s().-]{6,25}$/.test(input.guestPhone) && (input.guestPhone.match(/\d/g)?.length ?? 0) >= 6
+      : indianMobileNumberSchema.safeParse(input.guestPhone).success;
+    if (!validPhone) {
+      return NextResponse.json({ error: isInternational ? "Enter a valid international phone number." : "Enter a valid 10-digit Indian mobile number." }, { status: 400 });
+    }
+  }
+  if (isInternational && input.paymentMethod === "COD") {
+    return NextResponse.json({ error: "International orders require online payment." }, { status: 400 });
+  }
+
   if (input.paymentMethod === "ONLINE") {
     const payuConfig = getPayUConfig();
     if (!payuConfig) {
       return NextResponse.json(
-        { error: "PayU payments are not configured yet. Please choose Cash on Delivery, or contact support." },
+        {
+          error: isInternational
+            ? "Online payments are not configured yet. Please contact support to place an international order."
+            : "PayU payments are not configured yet. Please choose Cash on Delivery, or contact support.",
+        },
         { status: 503 }
       );
     }
 
-    const [user, savedAddress] = await Promise.all([
-      session?.user?.id
-        ? prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { name: true, email: true, phone: true },
-          })
-        : null,
-      input.addressId && session?.user?.id
-        ? prisma.address.findFirst({
-            where: { id: input.addressId, userId: session.user.id },
-          })
-        : null,
-    ]);
-    if (input.addressId && !savedAddress) {
-      return NextResponse.json({ error: "Please provide a valid shipping address." }, { status: 409 });
-    }
+    const user = session?.user?.id
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { name: true, email: true, phone: true },
+        })
+      : null;
 
     const firstName = input.guestName ?? savedAddress?.fullName ?? input.newAddress?.fullName ?? user?.name;
     const email = input.guestEmail ?? user?.email;
@@ -68,6 +84,9 @@ export async function POST(req: Request) {
     const priced = await priceCart(input.items, {
       couponCode: input.couponCode || undefined,
       userId: session?.user?.id ?? null,
+      shippingDestination: shippingAddress
+        ? { state: shippingAddress.state, country: shippingAddress.country }
+        : undefined,
     });
     if (priced.unavailableVariantIds.length > 0 || priced.lines.length === 0) {
       return NextResponse.json({ error: "Some items in your cart are no longer available." }, { status: 409 });

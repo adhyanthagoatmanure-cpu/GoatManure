@@ -86,7 +86,7 @@ export function ProductTabs({ productId, description, howToUse, shippingInfo, re
         {active === "Shipping Info" && (
           <div className={bodyClass}>
             {shippingInfo ||
-              `Orders are dispatched within 1-2 business days and typically delivered within 4-7 business days depending on your location. Free shipping on orders above ${formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}; a flat ${formatINR(SHIPPING_CONFIG.flatFee)} shipping fee applies below that. Cash on Delivery is available across serviceable pincodes.`}
+              `Orders are dispatched within 1-2 business days and typically delivered within 4-7 business days depending on your location. Tamil Nadu delivery is ${formatINR(SHIPPING_CONFIG.tamilNaduFee)} for orders below ${formatINR(SHIPPING_CONFIG.freeAboveSubtotal)} and free from ${formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}. Delivery elsewhere in India is ${formatINR(SHIPPING_CONFIG.indiaFee)}; international delivery is ${formatINR(SHIPPING_CONFIG.internationalFee)}. Cash on Delivery is available in India.`}
           </div>
         )}
         {active === "Reviews" && (

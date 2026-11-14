@@ -3,6 +3,7 @@ import { generateOrderNumber } from "@/lib/utils";
 import { priceCart, type RawCartLine, type StockIssue } from "./pricing.service";
 import type { AddressInput } from "@/lib/validations/checkout";
 import { Prisma, type Order, type PaymentMethod } from "@prisma/client";
+import type { ShippingDestination } from "@/lib/config";
 
 export interface CreateOrderInput {
   userId: string | null;
@@ -29,6 +30,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   // stored on the order so later edits to a saved Address never rewrite history.
   let shippingSnapshot: Prisma.InputJsonValue | null = null;
   let addressId: string | null = null;
+  let shippingDestination: ShippingDestination | undefined;
 
   if (input.addressId) {
     const addr = input.userId
@@ -36,6 +38,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       : null;
     if (!addr) return { ok: false, reason: "NO_ADDRESS" };
     addressId = addr.id;
+    shippingDestination = { state: addr.state, country: addr.country };
     shippingSnapshot = {
       fullName: addr.fullName,
       phone: addr.phone,
@@ -47,6 +50,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       country: addr.country,
     };
   } else if (input.newAddress) {
+    shippingDestination = { state: input.newAddress.state, country: input.newAddress.country };
     shippingSnapshot = { ...input.newAddress };
     if (input.userId && input.saveNewAddress) {
       const created = await prisma.address.create({
@@ -64,6 +68,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
         couponCode: input.couponCode,
         userId: input.userId,
         db: tx,
+        shippingDestination,
       });
 
       if (priced.unavailableVariantIds.length > 0) {

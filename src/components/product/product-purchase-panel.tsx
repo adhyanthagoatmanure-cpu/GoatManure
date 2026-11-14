@@ -157,7 +157,7 @@ export function ProductPurchasePanel({
           <Check className="h-4 w-4 text-[var(--color-leaf)]" aria-hidden="true" /> Cash on Delivery available
         </li>
         <li className="flex items-center gap-2">
-          <Check className="h-4 w-4 text-[var(--color-leaf)]" aria-hidden="true" /> Free shipping above {formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}
+          <Check className="h-4 w-4 text-[var(--color-leaf)]" aria-hidden="true" /> Free delivery in Tamil Nadu from {formatINR(SHIPPING_CONFIG.freeAboveSubtotal)}
         </li>
       </ul>
     </div>

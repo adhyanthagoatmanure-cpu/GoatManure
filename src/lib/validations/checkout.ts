@@ -35,7 +35,7 @@ export const addressSchema = z.object({
   phone: address.country.toLowerCase() === "india"
     ? normalizeIndianMobileNumber(address.phone)
     : address.phone,
-});
+}));
 
 export type AddressInput = z.infer<typeof addressSchema>;
 

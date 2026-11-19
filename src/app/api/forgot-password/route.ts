@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
-import { generateToken } from "@/lib/utils";
+import {
+  generatePasswordResetToken,
+  hashPasswordResetToken,
+} from "@/server/auth/password-reset-token";
 import { getEmailService, passwordResetEmail } from "@/server/email/email-service";
 
 export async function POST(req: Request) {
@@ -13,11 +16,10 @@ export async function POST(req: Request) {
   // Always return success, whether or not the account exists — this is
   // deliberate so the endpoint can't be used to enumerate registered emails.
   if (user && user.passwordHash) {
-    const token = generateToken();
-    await prisma.passwordResetToken.create({
-      data: { userId: user.id, token, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
-    });
-    const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL ?? "";
+    const token = generatePasswordResetToken();
+    const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+      || process.env.NEXTAUTH_URL?.trim()
+      || "";
     const requestHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
     const requestProtocol = req.headers.get("x-forwarded-proto") === "https" ? "https" : "http";
     const usesLocalRequestHost =
@@ -28,9 +30,50 @@ export async function POST(req: Request) {
         ? `${requestProtocol}://${requestHost.split(",")[0].trim()}`
         : configuredUrl
     ).replace(/\/$/, "");
-    const resetUrl = `${siteUrl}/reset-password?token=${encodeURIComponent(token)}`;
-    const tpl = passwordResetEmail(resetUrl);
-    await getEmailService().send({ to: user.email, ...tpl });
+    let parsedSiteUrl: URL;
+    try {
+      parsedSiteUrl = new URL(siteUrl);
+    } catch {
+      console.error("PASSWORD RESET URL CONFIGURATION INVALID");
+      return NextResponse.json({ ok: true });
+    }
+    if (
+      parsedSiteUrl.protocol !== "https:" &&
+      parsedSiteUrl.hostname !== "localhost" &&
+      parsedSiteUrl.hostname !== "127.0.0.1"
+    ) {
+      console.error("PASSWORD RESET URL MUST USE HTTPS");
+      return NextResponse.json({ ok: true });
+    }
+    const resetUrl = new URL("/reset-password", parsedSiteUrl);
+    resetUrl.searchParams.set("token", token);
+    const tpl = passwordResetEmail(resetUrl.toString());
+    const tokenHash = hashPasswordResetToken(token);
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+    });
+
+    try {
+      const result = await getEmailService().send({ to: user.email, ...tpl });
+      if (!result.sent) {
+        console.error("PASSWORD RESET EMAIL NOT ACCEPTED", JSON.stringify({
+          acceptedCount: result.accepted.length,
+          rejectedCount: result.rejected.length,
+        }));
+      }
+    } catch (error) {
+      console.error("PASSWORD RESET EMAIL DELIVERY FAILED", JSON.stringify({
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      }));
+    }
+  } else {
+    console.info("PASSWORD RESET EMAIL SKIPPED", JSON.stringify({
+      reason: user ? "password_auth_unavailable" : "no_matching_password_account",
+    }));
   }
 
   return NextResponse.json({ ok: true });

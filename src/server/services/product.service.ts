@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getProductSlugLookupCandidates } from "@/lib/product-slug";
 import type { Prisma } from "@prisma/client";
 
 const productListSelect = {
@@ -97,19 +98,21 @@ export async function getProducts(opts: ProductQueryOptions = {}) {
 }
 
 export async function getProductBySlug(slug: string) {
-  return prisma.product.findUnique({
-    where: { slug },
-    include: {
-      category: true,
-      benefits: { orderBy: { sortOrder: "asc" } },
-      variants: { orderBy: { sortOrder: "asc" } },
-      reviews: {
-        where: { isApproved: true },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-      },
+  const include = {
+    category: true,
+    benefits: { orderBy: { sortOrder: "asc" as const } },
+    variants: { orderBy: { sortOrder: "asc" as const } },
+    reviews: {
+      where: { isApproved: true },
+      orderBy: { createdAt: "desc" as const },
+      take: 20,
     },
-  });
+  };
+  for (const candidate of getProductSlugLookupCandidates(slug)) {
+    const product = await prisma.product.findUnique({ where: { slug: candidate }, include });
+    if (product) return product;
+  }
+  return null;
 }
 
 export async function getRelatedProducts(productId: string, categoryId: string | null, take = 4) {

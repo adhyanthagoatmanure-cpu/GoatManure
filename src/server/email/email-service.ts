@@ -1,5 +1,3 @@
-import { BrevoClient } from "@getbrevo/brevo";
-
 export interface SendEmailInput {
   to: string;
   subject: string;
@@ -18,42 +16,127 @@ export interface EmailService {
   send(input: SendEmailInput): Promise<SendEmailResult>;
 }
 
-const BREVO_API_KEY = process.env.BREVO_API_KEY ?? "";
-const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL ?? "";
-const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME ?? "ADHYANTHA";
+interface BrevoConfig {
+  apiKey: string;
+  senderEmail: string;
+  senderName: string;
+}
 
-/** Logs to the server console instead of sending. Used automatically until
- * BREVO_API_KEY and BREVO_SENDER_EMAIL are set, so auth + order flows are fully
- * testable before real email credentials exist. */
+function getBrevoConfig(): BrevoConfig | null {
+  const apiKey = process.env.BREVO_API_KEY?.trim() ?? "";
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() ?? "";
+  if (!apiKey && !senderEmail) return null;
+  if (!apiKey || !senderEmail) {
+    throw new Error("BREVO_API_KEY and BREVO_SENDER_EMAIL are required for email delivery");
+  }
+  return {
+    apiKey,
+    senderEmail,
+    senderName: process.env.BREVO_SENDER_NAME?.trim() || "ADHYANTHA",
+  };
+}
+
+function maskEmail(email: string): string {
+  const atIndex = email.lastIndexOf("@");
+  return atIndex > 0 ? `${email[0]}***${email.slice(atIndex)}` : "[redacted]";
+}
+
+function safeProviderResponse(response: string): string {
+  return response
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted email]")
+    .replace(/[\r\n]+/g, " ")
+    .slice(0, 500);
+}
+
+async function getProviderError(response: Response): Promise<string> {
+  const body = await response.text();
+  return safeProviderResponse(body) || `Brevo API request failed with status ${response.status}`;
+}
+
 class ConsoleEmailService implements EmailService {
   async send(_input: SendEmailInput): Promise<SendEmailResult> {
     void _input;
-    console.log("EMAIL NOT SENT - BREVO NOT CONFIGURED");
+    console.log("EMAIL NOT SENT - BREVO API NOT CONFIGURED");
     return { sent: false, accepted: [], rejected: [] };
   }
 }
 
 class BrevoEmailService implements EmailService {
-  private client = new BrevoClient({ apiKey: BREVO_API_KEY });
+  constructor(private readonly config: BrevoConfig) {}
 
   async send(input: SendEmailInput): Promise<SendEmailResult> {
-    const result = await this.client.transactionalEmails.sendTransacEmail({
-      sender: {
-        email: BREVO_SENDER_EMAIL,
-        name: BREVO_SENDER_NAME,
-      },
-      to: [{ email: input.to }],
-      subject: input.subject,
-      htmlContent: input.html,
-      textContent: input.text,
-    });
-    console.log("BREVO EMAIL ACCEPTED", JSON.stringify({ messageId: result.messageId }));
+    let response: Response;
+    try {
+      response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "api-key": this.config.apiKey,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { email: this.config.senderEmail, name: this.config.senderName },
+          to: [{ email: input.to }],
+          subject: input.subject,
+          htmlContent: input.html,
+          ...(input.text ? { textContent: input.text } : {}),
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (error) {
+      console.error("BREVO EMAIL REQUEST FAILED", JSON.stringify({
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      }));
+      throw error;
+    }
+
+    if (!response.ok) {
+      const error = await getProviderError(response);
+      console.error("BREVO EMAIL REJECTED", JSON.stringify({
+        status: response.status,
+        response: error,
+      }));
+      throw new Error(`Brevo rejected the email request (HTTP ${response.status})`);
+    }
+
+    const body = await response.json() as { messageId?: unknown };
+    const messageId = typeof body.messageId === "string" ? body.messageId : undefined;
+    console.info("BREVO EMAIL ACCEPTED", JSON.stringify({
+      messageId,
+      acceptedRecipients: [maskEmail(input.to)],
+      rejectedRecipients: [],
+    }));
     return {
       sent: true,
-      messageId: result.messageId,
+      messageId,
       accepted: [input.to],
       rejected: [],
     };
+  }
+
+  async verify(): Promise<void> {
+    let response: Response;
+    try {
+      response = await fetch("https://api.brevo.com/v3/account", {
+        headers: { accept: "application/json", "api-key": this.config.apiKey },
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (error) {
+      console.error("BREVO API VERIFICATION FAILED", JSON.stringify({
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      }));
+      throw error;
+    }
+
+    if (!response.ok) {
+      const error = await getProviderError(response);
+      console.error("BREVO API VERIFICATION FAILED", JSON.stringify({
+        status: response.status,
+        response: error,
+      }));
+      throw new Error(`Brevo API verification failed (HTTP ${response.status})`);
+    }
+    console.info("BREVO API KEY VERIFIED");
   }
 }
 
@@ -61,12 +144,26 @@ let instance: EmailService | null = null;
 
 export function getEmailService(): EmailService {
   if (!instance) {
-    instance =
-      BREVO_API_KEY && BREVO_SENDER_EMAIL
-        ? new BrevoEmailService()
-        : new ConsoleEmailService();
+    try {
+      const config = getBrevoConfig();
+      instance = config ? new BrevoEmailService(config) : new ConsoleEmailService();
+    } catch (error) {
+      console.error(
+        "BREVO CONFIGURATION INVALID",
+        error instanceof Error ? error.message : "Invalid configuration"
+      );
+      throw error;
+    }
   }
   return instance;
+}
+
+export async function verifyEmailConnection(): Promise<void> {
+  const emailService = getEmailService();
+  if (!(emailService instanceof BrevoEmailService)) {
+    throw new Error("Brevo API is not configured");
+  }
+  await emailService.verify();
 }
 
 // ── Templates ────────────────────────────────────────────────────────────

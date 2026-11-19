@@ -38,7 +38,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductListItem; 
 
   return (
     <Link
-      href={`/products/${product.slug}`}
+      href={`/products/${encodeURIComponent(product.slug)}`}
       className="surface glass-lift group flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)]"
     >
       <div className="relative flex aspect-[4/3.4] items-center justify-center bg-[radial-gradient(75%_70%_at_50%_38%,#ffffff_0%,rgba(255,255,255,0)_100%),linear-gradient(160deg,var(--color-sage)_0%,var(--color-parchment-deep)_100%)] p-6">

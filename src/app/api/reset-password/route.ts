@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { resetPasswordSchema } from "@/lib/validations/auth";
+import { hashPasswordResetToken } from "@/server/auth/password-reset-token";
 
 const RESET_TOKEN_UNAVAILABLE = "RESET_TOKEN_UNAVAILABLE";
 
@@ -11,7 +12,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const record = await prisma.passwordResetToken.findUnique({ where: { token: parsed.data.token } });
+  const tokenHash = hashPasswordResetToken(parsed.data.token);
+  const record = await prisma.passwordResetToken.findUnique({ where: { token: tokenHash } });
   if (!record || record.used || record.expiresAt < new Date()) {
     return NextResponse.json({ error: "This reset link is invalid or has expired. Please request a new one." }, { status: 400 });
   }
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
       const claimed = await tx.passwordResetToken.updateMany({
         where: {
           id: record.id,
-          token: parsed.data.token,
+          token: tokenHash,
           used: false,
           expiresAt: { gt: new Date() },
         },

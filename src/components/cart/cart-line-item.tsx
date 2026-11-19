@@ -21,7 +21,7 @@ export function CartLineItem({
   return (
     <div className="flex gap-4 border-b border-[var(--color-border)] py-5 last:border-0 sm:gap-5 sm:py-6">
       <Link
-        href={`/products/${line.productSlug}`}
+        href={`/products/${encodeURIComponent(line.productSlug)}`}
         aria-label={`View ${line.productName}`}
         className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-[var(--glass-edge)] bg-[radial-gradient(circle_at_50%_38%,#ffffff_0%,var(--color-sage)_100%)] sm:h-24 sm:w-24"
       >
@@ -31,7 +31,7 @@ export function CartLineItem({
       <div className="flex flex-1 flex-col justify-between">
         <div className="flex justify-between gap-3">
           <div>
-            <Link href={`/products/${line.productSlug}`} className="font-display text-base font-medium leading-snug transition-colors hover:text-[var(--color-canopy)] sm:text-lg">
+            <Link href={`/products/${encodeURIComponent(line.productSlug)}`} className="font-display text-base font-medium leading-snug transition-colors hover:text-[var(--color-canopy)] sm:text-lg">
               {line.productName}
             </Link>
             <p className="mt-0.5 text-sm text-[var(--color-stone)]">{line.weightLabel}</p>

@@ -99,9 +99,20 @@ export function Footer() {
       <div className="relative border-t border-white/10">
         <div className="container-page flex flex-col items-center justify-between gap-3 py-5 text-xs text-[var(--color-parchment)]/70 sm:flex-row">
           <p>© {new Date().getFullYear()} {SITE.name}. All rights reserved.</p>
-          <div className="flex gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <Link href="/privacy-policy" className="transition-colors hover:text-white">Privacy Policy</Link>
             <Link href="/terms" className="transition-colors hover:text-white">Terms of Service</Link>
+            <p>
+              Designed and developed by{" "}
+              <a
+                href="https://www.techstark.shop"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium transition-colors hover:text-white"
+              >
+                BlackStarkTechnologies
+              </a>
+            </p>
           </div>
         </div>
       </div>

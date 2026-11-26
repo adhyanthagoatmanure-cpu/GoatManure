@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   ArrowUpRight,
   Bolt,
+  ExternalLink,
   Leaf,
   MessageSquareQuote,
   Package,
@@ -165,6 +166,18 @@ export default async function AdminDashboardPage() {
                     <ArrowUpRight className="ml-auto h-4 w-4 text-stone-light" aria-hidden />
                   </Link>
                 ))}
+                <a
+                  href="https://srgpl.netlify.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center gap-2.5 rounded-[var(--radius-sm)] bg-sage/50 px-2.5 py-1.5 text-sm font-medium text-ink transition-colors hover:bg-sage"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-canopy shadow-sm">
+                    <ExternalLink className="h-4 w-4" aria-hidden />
+                  </span>
+                  Open SRGPL Application
+                  <ExternalLink className="ml-auto h-4 w-4 text-stone-light" aria-hidden />
+                </a>
               </div>
             </section>
           </div>
